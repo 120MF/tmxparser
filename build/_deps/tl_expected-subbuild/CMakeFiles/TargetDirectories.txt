@@ -1,3 +1,0 @@
-/home/runner/work/tmxparser/tmxparser/build/_deps/tl_expected-subbuild/CMakeFiles/tl_expected-populate.dir
-/home/runner/work/tmxparser/tmxparser/build/_deps/tl_expected-subbuild/CMakeFiles/edit_cache.dir
-/home/runner/work/tmxparser/tmxparser/build/_deps/tl_expected-subbuild/CMakeFiles/rebuild_cache.dir

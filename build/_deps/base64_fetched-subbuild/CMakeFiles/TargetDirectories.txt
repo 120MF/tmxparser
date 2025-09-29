@@ -1,3 +1,0 @@
-/home/runner/work/tmxparser/tmxparser/build/_deps/base64_fetched-subbuild/CMakeFiles/base64_fetched-populate.dir
-/home/runner/work/tmxparser/tmxparser/build/_deps/base64_fetched-subbuild/CMakeFiles/edit_cache.dir
-/home/runner/work/tmxparser/tmxparser/build/_deps/base64_fetched-subbuild/CMakeFiles/rebuild_cache.dir

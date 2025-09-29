@@ -1,8 +1,34 @@
-//
-// Created by wf on 2025/9/29.
-//
+#pragma once
 
-#ifndef TMXPARSER_RENDER_HPP
-#define TMXPARSER_RENDER_HPP
+#include <tl/expected.hpp>
+#include <string>
+#include <memory>
+#include "../Map.hpp"
 
-#endif //TMXPARSER_RENDER_HPP
+// Forward declarations for when SDL3 is available
+struct SDL_Renderer;
+struct SDL_Texture;
+
+namespace tmx {
+
+class Renderer {
+public:
+    using Error = std::string;
+    
+    Renderer(SDL_Renderer* renderer);
+    ~Renderer();
+    
+    auto loadMap(const Map& map) -> tl::expected<void, Error>;
+    auto render(int x = 0, int y = 0) -> tl::expected<void, Error>;
+    
+private:
+    SDL_Renderer* m_renderer;
+    std::vector<SDL_Texture*> m_tilesetTextures;
+    Map m_map;
+    bool m_loaded = false;
+    
+    auto loadTilesetTexture(const Tileset& tileset) -> tl::expected<SDL_Texture*, Error>;
+    auto renderLayer(const Layer& layer, int offsetX, int offsetY) -> tl::expected<void, Error>;
+};
+
+}
