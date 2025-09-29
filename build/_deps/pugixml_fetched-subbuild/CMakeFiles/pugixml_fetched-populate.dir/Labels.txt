@@ -1,0 +1,14 @@
+# Target labels
+ pugixml_fetched-populate
+# Source files and their labels
+/home/runner/work/tmxparser/tmxparser/build/_deps/pugixml_fetched-subbuild/CMakeFiles/pugixml_fetched-populate
+/home/runner/work/tmxparser/tmxparser/build/_deps/pugixml_fetched-subbuild/CMakeFiles/pugixml_fetched-populate.rule
+/home/runner/work/tmxparser/tmxparser/build/_deps/pugixml_fetched-subbuild/CMakeFiles/pugixml_fetched-populate-complete.rule
+/home/runner/work/tmxparser/tmxparser/build/_deps/pugixml_fetched-subbuild/pugixml_fetched-populate-prefix/src/pugixml_fetched-populate-stamp/pugixml_fetched-populate-build.rule
+/home/runner/work/tmxparser/tmxparser/build/_deps/pugixml_fetched-subbuild/pugixml_fetched-populate-prefix/src/pugixml_fetched-populate-stamp/pugixml_fetched-populate-configure.rule
+/home/runner/work/tmxparser/tmxparser/build/_deps/pugixml_fetched-subbuild/pugixml_fetched-populate-prefix/src/pugixml_fetched-populate-stamp/pugixml_fetched-populate-download.rule
+/home/runner/work/tmxparser/tmxparser/build/_deps/pugixml_fetched-subbuild/pugixml_fetched-populate-prefix/src/pugixml_fetched-populate-stamp/pugixml_fetched-populate-install.rule
+/home/runner/work/tmxparser/tmxparser/build/_deps/pugixml_fetched-subbuild/pugixml_fetched-populate-prefix/src/pugixml_fetched-populate-stamp/pugixml_fetched-populate-mkdir.rule
+/home/runner/work/tmxparser/tmxparser/build/_deps/pugixml_fetched-subbuild/pugixml_fetched-populate-prefix/src/pugixml_fetched-populate-stamp/pugixml_fetched-populate-patch.rule
+/home/runner/work/tmxparser/tmxparser/build/_deps/pugixml_fetched-subbuild/pugixml_fetched-populate-prefix/src/pugixml_fetched-populate-stamp/pugixml_fetched-populate-test.rule
+/home/runner/work/tmxparser/tmxparser/build/_deps/pugixml_fetched-subbuild/pugixml_fetched-populate-prefix/src/pugixml_fetched-populate-stamp/pugixml_fetched-populate-update.rule

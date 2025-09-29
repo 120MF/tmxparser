@@ -1,0 +1,46 @@
+{
+	"sources" : 
+	[
+		{
+			"file" : "/home/runner/work/tmxparser/tmxparser/build/_deps/zstd_fetched-subbuild/CMakeFiles/zstd_fetched-populate"
+		},
+		{
+			"file" : "/home/runner/work/tmxparser/tmxparser/build/_deps/zstd_fetched-subbuild/CMakeFiles/zstd_fetched-populate.rule"
+		},
+		{
+			"file" : "/home/runner/work/tmxparser/tmxparser/build/_deps/zstd_fetched-subbuild/CMakeFiles/zstd_fetched-populate-complete.rule"
+		},
+		{
+			"file" : "/home/runner/work/tmxparser/tmxparser/build/_deps/zstd_fetched-subbuild/zstd_fetched-populate-prefix/src/zstd_fetched-populate-stamp/zstd_fetched-populate-build.rule"
+		},
+		{
+			"file" : "/home/runner/work/tmxparser/tmxparser/build/_deps/zstd_fetched-subbuild/zstd_fetched-populate-prefix/src/zstd_fetched-populate-stamp/zstd_fetched-populate-configure.rule"
+		},
+		{
+			"file" : "/home/runner/work/tmxparser/tmxparser/build/_deps/zstd_fetched-subbuild/zstd_fetched-populate-prefix/src/zstd_fetched-populate-stamp/zstd_fetched-populate-download.rule"
+		},
+		{
+			"file" : "/home/runner/work/tmxparser/tmxparser/build/_deps/zstd_fetched-subbuild/zstd_fetched-populate-prefix/src/zstd_fetched-populate-stamp/zstd_fetched-populate-install.rule"
+		},
+		{
+			"file" : "/home/runner/work/tmxparser/tmxparser/build/_deps/zstd_fetched-subbuild/zstd_fetched-populate-prefix/src/zstd_fetched-populate-stamp/zstd_fetched-populate-mkdir.rule"
+		},
+		{
+			"file" : "/home/runner/work/tmxparser/tmxparser/build/_deps/zstd_fetched-subbuild/zstd_fetched-populate-prefix/src/zstd_fetched-populate-stamp/zstd_fetched-populate-patch.rule"
+		},
+		{
+			"file" : "/home/runner/work/tmxparser/tmxparser/build/_deps/zstd_fetched-subbuild/zstd_fetched-populate-prefix/src/zstd_fetched-populate-stamp/zstd_fetched-populate-test.rule"
+		},
+		{
+			"file" : "/home/runner/work/tmxparser/tmxparser/build/_deps/zstd_fetched-subbuild/zstd_fetched-populate-prefix/src/zstd_fetched-populate-stamp/zstd_fetched-populate-update.rule"
+		}
+	],
+	"target" : 
+	{
+		"labels" : 
+		[
+			"zstd_fetched-populate"
+		],
+		"name" : "zstd_fetched-populate"
+	}
+}

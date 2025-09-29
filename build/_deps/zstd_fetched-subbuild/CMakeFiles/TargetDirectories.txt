@@ -1,0 +1,3 @@
+/home/runner/work/tmxparser/tmxparser/build/_deps/zstd_fetched-subbuild/CMakeFiles/zstd_fetched-populate.dir
+/home/runner/work/tmxparser/tmxparser/build/_deps/zstd_fetched-subbuild/CMakeFiles/edit_cache.dir
+/home/runner/work/tmxparser/tmxparser/build/_deps/zstd_fetched-subbuild/CMakeFiles/rebuild_cache.dir
