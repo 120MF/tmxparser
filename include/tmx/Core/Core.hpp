@@ -1,0 +1,6 @@
+#ifndef TMXPARSER_CORE_HPP
+#define TMXPARSER_CORE_HPP
+
+
+
+#endif //TMXPARSER_CORE_HPP

@@ -1,0 +1,4 @@
+#ifndef TMXPARSER_TMX_HPP
+#define TMXPARSER_TMX_HPP
+
+#endif //TMXPARSER_TMX_HPP
