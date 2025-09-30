@@ -1,1 +1,0 @@
-Placeholder for test_tileset.png - a 64x64 image with 4 32x32 tiles
