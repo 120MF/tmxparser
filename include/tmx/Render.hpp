@@ -3,7 +3,7 @@
 #include <tl/expected.hpp>
 #include <string>
 #include <memory>
-#include "../Map.hpp"
+#include "Map.hpp"
 
 // Forward declarations for when SDL3 is available
 struct SDL_Renderer;
@@ -18,17 +18,17 @@ public:
     Renderer(SDL_Renderer* renderer);
     ~Renderer();
     
-    auto loadMap(const Map& map) -> tl::expected<void, Error>;
+    auto loadMap(const map::Map& map) -> tl::expected<void, Error>;
     auto render(int x = 0, int y = 0) -> tl::expected<void, Error>;
     
 private:
     SDL_Renderer* m_renderer;
     std::vector<SDL_Texture*> m_tilesetTextures;
-    Map m_map;
+    map::Map m_map;
     bool m_loaded = false;
     
-    auto loadTilesetTexture(const Tileset& tileset) -> tl::expected<SDL_Texture*, Error>;
-    auto renderLayer(const Layer& layer, int offsetX, int offsetY) -> tl::expected<void, Error>;
+    auto loadTilesetTexture(const map::Tileset& tileset) -> tl::expected<SDL_Texture*, Error>;
+    auto renderLayer(const map::Layer& layer, int offsetX, int offsetY) -> tl::expected<void, Error>;
 };
 
 }

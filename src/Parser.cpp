@@ -1,4 +1,4 @@
-#include "tmx/Parser/Parser.hpp"
+#include "tmx/Parser.hpp"
 #include <fstream>
 #include <sstream>
 #include <zlib.h>
@@ -6,7 +6,7 @@
 
 namespace tmx
 {
-    auto Parser::parseFromFile(const std::filesystem::path& path) -> Result
+    auto Parser::parseFromFile(const std::filesystem::path& path) -> tl::expected<map::Map, std::string>
     {
         std::ifstream file(path);
         if (!file.is_open())
@@ -20,7 +20,7 @@ namespace tmx
         return parseFromString(buffer.str());
     }
 
-    auto Parser::parseFromString(const std::string& xml) -> Result
+    auto Parser::parseFromString(const std::string& xml) -> tl::expected<map::Map, std::string>
     {
         pugi::xml_document doc;
         const pugi::xml_parse_result result = doc.load_string(xml.c_str());
@@ -39,9 +39,9 @@ namespace tmx
         return parseMap(mapNode);
     }
 
-    auto Parser::parseMap(const pugi::xml_node& mapNode) -> Result
+    auto Parser::parseMap(const pugi::xml_node& mapNode) -> tl::expected<map::Map, std::string>
     {
-        Map map;
+        map::Map map;
 
         // Parse attributes
         map.version = mapNode.attribute("version").as_string("1.0");
@@ -59,7 +59,7 @@ namespace tmx
         // Parse background color
         if (auto bgColorAttr = mapNode.attribute("backgroundcolor"))
         {
-            auto colorResult = Color::fromString(bgColorAttr.as_string());
+            auto colorResult = map::Color::fromString(bgColorAttr.as_string());
             if (colorResult)
             {
                 map.backgroundcolor = *colorResult;
@@ -97,9 +97,9 @@ namespace tmx
         return map;
     }
 
-    auto Parser::parseTileset(const pugi::xml_node& tilesetNode) -> tl::expected<Tileset, std::string>
+    auto Parser::parseTileset(const pugi::xml_node& tilesetNode) -> tl::expected<map::Tileset, std::string>
     {
-        Tileset tileset{};
+        map::Tileset tileset{};
 
         tileset.firstgid = tilesetNode.attribute("firstgid").as_uint();
         tileset.name = tilesetNode.attribute("name").as_string();
@@ -126,9 +126,9 @@ namespace tmx
         return tileset;
     }
 
-    auto Parser::parseLayer(const pugi::xml_node& layerNode) -> tl::expected<Layer, std::string>
+    auto Parser::parseLayer(const pugi::xml_node& layerNode) -> tl::expected<map::Layer, std::string>
     {
-        Layer layer;
+        map::Layer layer;
 
         layer.name = layerNode.attribute("name").as_string();
         layer.width = layerNode.attribute("width").as_uint();
@@ -156,13 +156,13 @@ namespace tmx
         return layer;
     }
 
-    auto Parser::parseProperties(const pugi::xml_node& propertiesNode) -> Properties
+    auto Parser::parseProperties(const pugi::xml_node& propertiesNode) -> map::Properties
     {
-        Properties properties;
+        map::Properties properties;
 
         for (auto propertyNode : propertiesNode.children("property"))
         {
-            Property prop;
+            map::Property prop;
             prop.name = propertyNode.attribute("name").as_string();
             prop.value = propertyNode.attribute("value").as_string();
             prop.type = propertyNode.attribute("type").as_string("string");
@@ -173,20 +173,20 @@ namespace tmx
         return properties;
     }
 
-    auto Parser::parseOrientation(const std::string& str) -> Orientation
+    auto Parser::parseOrientation(const std::string& str) -> map::Orientation
     {
-        if (str == "isometric") return Orientation::Isometric;
-        if (str == "staggered") return Orientation::Staggered;
-        if (str == "hexagonal") return Orientation::Hexagonal;
-        return Orientation::Orthogonal;
+        if (str == "isometric") return map::Orientation::Isometric;
+        if (str == "staggered") return map::Orientation::Staggered;
+        if (str == "hexagonal") return map::Orientation::Hexagonal;
+        return map::Orientation::Orthogonal;
     }
 
-    auto Parser::parseRenderOrder(const std::string& str) -> RenderOrder
+    auto Parser::parseRenderOrder(const std::string& str) -> map::RenderOrder
     {
-        if (str == "right-up") return RenderOrder::RightUp;
-        if (str == "left-down") return RenderOrder::LeftDown;
-        if (str == "left-up") return RenderOrder::LeftUp;
-        return RenderOrder::RightDown;
+        if (str == "right-up") return map::RenderOrder::RightUp;
+        if (str == "left-down") return map::RenderOrder::LeftDown;
+        if (str == "left-up") return map::RenderOrder::LeftUp;
+        return map::RenderOrder::RightDown;
     }
 
     auto Parser::parseData(const pugi::xml_node& dataNode, std::uint32_t width, std::uint32_t height)

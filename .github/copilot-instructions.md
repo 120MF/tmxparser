@@ -21,16 +21,12 @@ tmxparser/
 ├── include/tmx/          # 公共头文件
 │   ├── tmx.hpp          # 主入口头文件
 │   ├── Map.hpp          # TMX 数据结构定义
-│   ├── Parser/          # 解析器相关
-│   │   └── Parser.hpp
-│   └── Render/          # 渲染器相关
-│       └── Render.hpp
+│   ├── Parser.hpp       # 解析器接口
+│   └── Render.hpp       # 渲染器接口
 ├── src/                 # 源文件实现
 │   ├── Map.cpp
-│   ├── Parser/
-│   │   └── Parser.cpp
-│   └── Render/
-│       └── Render.cpp
+│   ├── Parser.cpp
+│   └── Render.cpp
 ├── examples/            # 示例代码
 │   └── basic/          # 基础使用示例
 ├── tests/              # 单元测试
@@ -42,32 +38,38 @@ tmxparser/
 
 #### 1. TMX 数据结构 (`include/tmx/Map.hpp`)
 ```cpp
-// 核心数据结构包括：
-- Map           // 地图主结构
-- Layer         // 图层数据
-- Tileset       // 瓦片集
-- Properties    // 属性系统
-- Color         // 颜色处理
+// 所有TMX数据结构位于 tmx::map 命名空间中：
+namespace tmx::map {
+    struct Map;          // 地图主结构
+    struct Layer;        // 图层数据
+    struct Tileset;      // 瓦片集
+    struct Properties;   // 属性系统
+    struct Color;        // 颜色处理
+}
 ```
 
-#### 2. 解析器 (`include/tmx/Parser/Parser.hpp`)
+#### 2. 解析器 (`include/tmx/Parser.hpp`)
 ```cpp
+namespace tmx {
 class Parser {
 public:
-    using Result = tl::expected<Map, std::string>;
-    
-    static auto parseFromFile(const std::filesystem::path& path) -> Result;
-    static auto parseFromString(const std::string& xml) -> Result;
+    static auto parseFromFile(const std::filesystem::path& path) 
+        -> tl::expected<map::Map, std::string>;
+    static auto parseFromString(const std::string& xml) 
+        -> tl::expected<map::Map, std::string>;
 };
+}
 ```
 
-#### 3. 渲染器 (`include/tmx/Render/Render.hpp`)
+#### 3. 渲染器 (`include/tmx/Render.hpp`)
 ```cpp
+namespace tmx {
 class Renderer {
 public:
-    auto loadMap(const Map& map) -> tl::expected<void, Error>;
+    auto loadMap(const map::Map& map) -> tl::expected<void, Error>;
     auto render(int x = 0, int y = 0) -> tl::expected<void, Error>;
 };
+}
 ```
 
 ## 开发准则
@@ -97,7 +99,7 @@ public:
 ### 3. 错误处理模式
 ```cpp
 // 使用 tl::expected 替代异常
-auto parseLayer(const pugi::xml_node& node) -> tl::expected<Layer, std::string> {
+auto parseLayer(const pugi::xml_node& node) -> tl::expected<map::Layer, std::string> {
     if (!node) {
         return tl::make_unexpected("Invalid node");
     }

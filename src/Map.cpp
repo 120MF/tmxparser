@@ -3,7 +3,7 @@
 #include <sstream>
 #include <iomanip>
 
-namespace tmx {
+namespace tmx::map {
 
 auto Color::fromString(const std::string& hex) -> tl::expected<Color, std::string> {
     if (hex.empty()) {

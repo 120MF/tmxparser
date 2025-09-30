@@ -6,7 +6,7 @@
 #include <memory>
 #include <cstdint>
 
-namespace tmx {
+namespace tmx::map {
 
 enum class Orientation {
     Orthogonal,
