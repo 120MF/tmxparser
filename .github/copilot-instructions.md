@@ -2,12 +2,12 @@
 
 ## 项目概述
 
-TMXParser 是一个现代化的 C++ TMX（Tiled Map Exchange）地图文件解析库，专门为游戏开发而设计。该项目采用最新的 C++23 标准，整合 SDL3 渲染引擎，提供高性能、缓存友好的地图解析和渲染功能。
+TMXParser 是一个现代化的 C++ TMX（Tiled Map Exchange）地图文件解析库，专门为游戏开发而设计。该项目采用最新的 C++23 标准，提供高性能、缓存友好的地图解析功能。
 
 ### 核心特性
 - **现代 C++23** - 利用最新语言特性提供类型安全和性能优化
 - **TMX 标准支持** - 完全遵循 [Tiled Map Editor 官方规范](https://doc.mapeditor.org/en/stable/reference/tmx-map-format/)
-- **SDL3 集成** - 为现代图形渲染提供无缝集成
+- **纯解析库** - 专注于 TMX 格式解析，渲染由用户在应用层实现
 - **并发与协程** - 异步地图加载和处理能力
 - **SIMD 优化** - 利用向量指令加速数据处理
 - **错误处理** - 基于 `tl::expected` 的现代错误处理模式
@@ -21,12 +21,10 @@ tmxparser/
 ├── include/tmx/          # 公共头文件
 │   ├── tmx.hpp          # 主入口头文件
 │   ├── Map.hpp          # TMX 数据结构定义
-│   ├── Parser.hpp       # 解析器接口
-│   └── Render.hpp       # 渲染器接口
+│   └── Parser.hpp       # 解析器接口
 ├── src/                 # 源文件实现
 │   ├── Map.cpp
-│   ├── Parser.cpp
-│   └── Render.cpp
+│   └── Parser.cpp
 ├── examples/            # 示例代码
 │   └── basic/          # 基础使用示例
 ├── tests/              # 单元测试
@@ -61,16 +59,7 @@ public:
 }
 ```
 
-#### 3. 渲染器 (`include/tmx/Render.hpp`)
-```cpp
-namespace tmx {
-class Renderer {
-public:
-    auto loadMap(const map::Map& map) -> tl::expected<void, Error>;
-    auto render(int x = 0, int y = 0) -> tl::expected<void, Error>;
-};
-}
-```
+> **注意**: 渲染功能将在 examples 中使用 SDL3 实现，库本身不包含渲染器。
 
 ## 开发准则
 
@@ -128,35 +117,29 @@ auto parseLayer(const pugi::xml_node& node) -> tl::expected<map::Layer, std::str
 - ⭕ 无限地图 (Infinite Maps)
 - ⭕ 六边形和等距地图支持
 
-## SDL3 渲染集成
+## 渲染集成
 
-### 当前状态
-目前渲染器提供基础接口，SDL3 集成处于初期阶段：
+TMXParser 是一个纯粹的解析库，不包含渲染功能。渲染应该在应用层实现。
 
-```cpp
-// 基础用法
-tmx::Renderer renderer(sdl_renderer);
-auto result = renderer.loadMap(map);
-if (result) {
-    renderer.render(0, 0);  // x, y 偏移
-}
-```
+### SDL3 渲染示例
 
-### 渲染优化计划
-1. **纹理管理**：
-   - 瓦片集纹理缓存
-   - 自动纹理图集生成
-   - 动态纹理流送
+渲染功能可以在 examples 中使用 SDL3 实现。基本步骤：
 
-2. **批量渲染**：
-   - 实例化渲染
-   - 绘制调用合并
-   - GPU 缓冲区优化
+1. **加载地图数据**：
+   ```cpp
+   auto mapResult = tmx::Parser::parseFromFile("map.tmx");
+   ```
 
-3. **视锥裁剪**：
-   - 只渲染可见瓦片
-   - LOD (Level of Detail) 系统
-   - 分块加载策略
+2. **在应用中实现渲染**：
+   - 加载瓦片集纹理
+   - 根据图层数据渲染瓦片
+   - 处理图层透明度和可见性
+
+3. **渲染优化建议**：
+   - 使用纹理图集减少绘制调用
+   - 实现视锥裁剪只渲染可见区域
+   - 使用批量渲染提高性能
+   - 缓存瓦片纹理避免重复加载
 
 ## 构建系统
 
@@ -170,7 +153,6 @@ if (result) {
 - base64       # Base64 解码
 - zlib         # 数据解压缩
 - zstd         # 高效压缩
-- SDL3         # 渲染引擎
 ```
 
 ### 构建步骤
@@ -219,40 +201,84 @@ int main() {
 }
 ```
 
-### 渲染集成
+### SDL3 渲染集成示例
+
+渲染功能应在应用层实现。以下是使用 SDL3 的基本示例：
+
 ```cpp
 #include <tmx/tmx.hpp>
 #include <SDL3/SDL.h>
+#include <SDL3/SDL_image.h>
 
 int main() {
-    // SDL 初始化...
-    SDL_Renderer* renderer = /* ... */;
+    // 初始化 SDL
+    SDL_Init(SDL_INIT_VIDEO);
+    auto window = SDL_CreateWindow("TMX Viewer", 800, 600, 0);
+    auto renderer = SDL_CreateRenderer(window, nullptr);
     
-    auto map_result = tmx::Parser::parseFromFile("level1.tmx");
-    if (map_result) {
-        tmx::Renderer tmx_renderer(renderer);
-        tmx_renderer.loadMap(*map_result);
-        
-        // 渲染循环
-        while (running) {
-            SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
-            SDL_RenderClear(renderer);
-            
-            tmx_renderer.render(camera_x, camera_y);
-            
-            SDL_RenderPresent(renderer);
-        }
+    // 解析地图
+    auto mapResult = tmx::Parser::parseFromFile("level1.tmx");
+    if (!mapResult) {
+        return 1;
     }
+    const auto& map = *mapResult;
+    
+    // 加载瓦片集纹理（需要用户实现）
+    std::vector<SDL_Texture*> tilesetTextures;
+    for (const auto& tileset : map.tilesets) {
+        auto surface = IMG_Load(tileset.image.c_str());
+        auto texture = SDL_CreateTextureFromSurface(renderer, surface);
+        SDL_DestroySurface(surface);
+        tilesetTextures.push_back(texture);
+    }
+    
+    // 渲染循环
+    bool running = true;
+    while (running) {
+        SDL_Event event;
+        while (SDL_PollEvent(&event)) {
+            if (event.type == SDL_EVENT_QUIT) running = false;
+        }
+        
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+        SDL_RenderClear(renderer);
+        
+        // 渲染图层（需要用户实现渲染逻辑）
+        for (const auto& layer : map.layers) {
+            if (!layer.visible) continue;
+            
+            for (uint32_t y = 0; y < layer.height; ++y) {
+                for (uint32_t x = 0; x < layer.width; ++x) {
+                    uint32_t tileId = layer.data[y * layer.width + x];
+                    if (tileId == 0) continue;
+                    
+                    // 根据 tileId 确定使用哪个瓦片集和源矩形
+                    // 然后渲染到目标位置
+                    // ... 渲染代码 ...
+                }
+            }
+        }
+        
+        SDL_RenderPresent(renderer);
+    }
+    
+    // 清理
+    for (auto tex : tilesetTextures) SDL_DestroyTexture(tex);
+    SDL_DestroyRenderer(renderer);
+    SDL_DestroyWindow(window);
+    SDL_Quit();
     
     return 0;
 }
 ```
 
+> **提示**: 完整的渲染实现将在 examples 目录中提供。
+
 ## 未来发展方向
 
 ### 短期目标 (1-2 个月)
 1. 完善基础 TMX 功能支持
-2. 实现高性能 SDL3 渲染
+2. 提供完整的 SDL3 渲染示例
 3. 添加完整的单元测试套件
 4. 性能优化和基准测试
 
@@ -285,16 +311,16 @@ int main() {
 ## 技术债务管理
 
 ### 当前已知问题
-1. SDL3 集成需要完善图像加载
-2. 错误处理需要更细粒度的错误类型
-3. 内存池分配器待实现
-4. 日志系统缺失
+1. 错误处理需要更细粒度的错误类型
+2. 内存池分配器待实现
+3. 日志系统缺失
+4. 需要更多单元测试覆盖
 
 ### 重构计划
-1. 抽象渲染接口以支持多后端
-2. 插件化架构设计
-3. 配置系统标准化
-4. 资源管理生命周期优化
+1. 插件化架构设计
+2. 配置系统标准化
+3. 资源管理生命周期优化
+4. 提供渲染示例实现
 
 ---
 

@@ -38,8 +38,7 @@ int main()
             << ", tiles=" << layer.data.size() << ")" << std::endl;
     }
 
-    // For now, we can't render without SDL3 images, but we can demonstrate parsing
-    std::cout << "\nNote: SDL3 rendering requires tileset images to be available." << std::endl;
+    std::cout << "\nNote: TMXParser is a parsing library. Rendering should be implemented in your application using SDL3, SFML, or other graphics libraries." << std::endl;
 
     return 0;
 }
