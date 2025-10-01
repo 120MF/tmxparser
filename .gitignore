@@ -2,3 +2,11 @@
 cmake-build*
 ref
 .factory
+build/
+*~
+*.o
+*.so
+*.a
+*.exe
+.vscode/
+.vs/

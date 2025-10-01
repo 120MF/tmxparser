@@ -1,4 +1,4 @@
-#ifndef TMXPARSER_TMX_HPP
-#define TMXPARSER_TMX_HPP
+#pragma once
 
-#endif //TMXPARSER_TMX_HPP
+#include "Map.hpp"
+#include "Parser.hpp"
