@@ -35,9 +35,9 @@ int main(int argc, char* argv[])
     }
 
     // Create window
-    const int windowWidth = map.width * map.tilewidth;
-    const int windowHeight = map.height * map.tileheight;
-    
+    const auto windowWidth = map.width * map.tilewidth;
+    const auto windowHeight = map.height * map.tileheight;
+
     SDL_Window* window = SDL_CreateWindow(
         "TMXParser SDL3 Example",
         windowWidth,
@@ -68,14 +68,14 @@ int main(int argc, char* argv[])
     if (!map.tilesets.empty())
     {
         const auto& tileset = map.tilesets[0];
-        std::filesystem::path imageSource = assetDir / tileset.image;
-        
+        const std::filesystem::path imageSource = assetDir / tileset.image;
+
         std::cout << "Loading tileset from: " << imageSource << std::endl;
-        
+
         // Load image using stb_image
         int width, height, channels;
         unsigned char* imageData = stbi_load(imageSource.string().c_str(), &width, &height, &channels, 4);
-        
+
         if (!imageData)
         {
             std::cerr << "Failed to load tileset image: " << stbi_failure_reason() << std::endl;
@@ -89,7 +89,7 @@ int main(int argc, char* argv[])
                 imageData,
                 width * 4
             );
-            
+
             if (!surface)
             {
                 std::cerr << "Failed to create surface: " << SDL_GetError() << std::endl;
@@ -100,7 +100,7 @@ int main(int argc, char* argv[])
                 tilesetTexture = SDL_CreateTextureFromSurface(renderer, surface);
                 SDL_DestroySurface(surface);
                 stbi_image_free(imageData);
-                
+
                 if (!tilesetTexture)
                 {
                     std::cerr << "Failed to create texture: " << SDL_GetError() << std::endl;
