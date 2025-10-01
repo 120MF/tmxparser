@@ -221,8 +221,7 @@ namespace tmx
             std::string base64Data = dataNode.text().as_string();
 
             // Remove whitespace
-            base64Data.erase(std::remove_if(base64Data.begin(), base64Data.end(), ::isspace),
-                             base64Data.end());
+            std::erase_if(base64Data, ::isspace);
 
             // Decode base64
             size_t outLen;
