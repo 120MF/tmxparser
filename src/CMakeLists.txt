@@ -1,6 +1,7 @@
 add_library(tmxparser STATIC
     Map.cpp
     Parser.cpp
+    RenderData.cpp
 )
 
 target_include_directories(tmxparser 
