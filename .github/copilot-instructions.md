@@ -31,8 +31,19 @@ tmxparser/
 ├── examples/            # 示例代码
 │   ├── basic/          # 基础使用示例
 │   └── SDL3/           # SDL3 渲染示例
-├── tests/              # 单元测试
+├── tests/              # 单元测试（基于 CTest）
+│   ├── CMakeLists.txt # 测试配置
+│   └── test_parser.cpp # 解析器测试
 ├── assets/             # 测试资源文件
+│   ├── test.tmx       # CSV 编码
+│   ├── test_b64.tmx   # Base64 编码
+│   ├── test_b64_gzip.tmx  # Base64 + gzip
+│   ├── test_b64_zlib.tmx  # Base64 + zlib
+│   ├── test_b64_zstd.tmx  # Base64 + zstd
+│   └── test_tileset.png   # 测试瓦片集
+├── .github/
+│   └── workflows/
+│       └── ci.yml      # GitHub Actions CI 配置
 └── cmake/              # CMake 构建脚本
 ```
 
@@ -148,7 +159,7 @@ auto parseLayer(const pugi::xml_node& node) -> tl::expected<map::Layer, std::str
 - ✅ 基础地图属性（尺寸、瓦片大小、方向）
 - ✅ 瓦片集管理（firstgid、图像路径、瓦片尺寸）
 - ✅ 图层数据（CSV 和 Base64 编码）
-- ✅ zlib/gzip 压缩支持
+- ✅ 完整压缩支持（zlib、gzip、zstd）
 - ✅ 属性系统（键值对）
 - ✅ 颜色解析（十六进制格式）
 
@@ -318,16 +329,68 @@ make -j$(nproc)
 
 ## 测试策略
 
-### 单元测试
-- 解析器正确性测试
-- 性能基准测试
-- 内存泄漏检测
-- 边界条件验证
+### 单元测试（基于 CTest）
+
+项目使用 CMake CTest 进行单元测试。测试位于 `tests/` 目录下。
+
+#### 运行测试
+
+```bash
+# 构建项目并启用测试
+mkdir build && cd build
+cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_TMX_TESTS=ON
+make -j$(nproc)
+
+# 运行所有测试
+ctest --output-on-failure
+
+# 运行特定测试
+ctest -R test_csv --verbose
+```
+
+#### 测试覆盖
+
+当前测试涵盖所有支持的数据编码和压缩格式：
+
+1. **test_csv** - CSV 编码测试
+2. **test_base64** - Base64 编码（无压缩）测试
+3. **test_base64_gzip** - Base64 + gzip 压缩测试
+4. **test_base64_zlib** - Base64 + zlib 压缩测试
+5. **test_base64_zstd** - Base64 + zstd 压缩测试
+
+每个测试验证：
+- 地图尺寸正确性
+- 瓦片集信息正确性
+- 图层数据完整性
+- 瓦片数据一致性
+
+#### 持续集成
+
+项目使用 GitHub Actions 进行自动化测试：
+- 每次推送到 `master` 分支时自动运行
+- 每个 Pull Request 都会触发测试
+- 测试结果会显示在 PR 检查中
+
+#### 添加新测试
+
+在 `tests/CMakeLists.txt` 中添加新测试：
+
+```cmake
+add_test(NAME test_name
+    COMMAND test_parser "${PROJECT_SOURCE_DIR}/assets/test_file.tmx"
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+```
+
+### 性能测试
+- 解析器性能基准测试（计划中）
+- 内存泄漏检测（计划中）
+- 边界条件验证（计划中）
 
 ### 集成测试
-- 与实际游戏引擎集成测试
-- 大型地图性能测试
-- 多线程安全性验证
+- 与实际游戏引擎集成测试（计划中）
+- 大型地图性能测试（计划中）
+- 多线程安全性验证（计划中）
 
 ## 示例用法
 
@@ -468,8 +531,9 @@ int main() {
 ### 短期目标 (1-2 个月)
 1. 完善基础 TMX 功能支持
 2. ✅ 提供完整的 SDL3 渲染示例
-3. 添加完整的单元测试套件
-4. 性能优化和基准测试
+3. ✅ 添加完整的单元测试套件（CTest + 5种编码/压缩格式测试）
+4. ✅ 集成 GitHub Actions CI/CD
+5. 性能优化和基准测试
 
 ### 中期目标 (3-6 个月)
 1. 支持所有 TMX 特性
