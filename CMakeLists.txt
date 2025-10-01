@@ -17,5 +17,6 @@ if (BUILD_TMX_EXAMPLES)
 endif ()
 
 if (BUILD_TMX_TESTS)
+    enable_testing()
     add_subdirectory(tests)
 endif ()
