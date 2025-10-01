@@ -3,6 +3,7 @@
 #include <sstream>
 #include <zlib.h>
 #include <libbase64.h>
+#include <zstd.h>
 
 namespace tmx
 {
@@ -234,9 +235,9 @@ namespace tmx
 
             // Handle compression
             std::vector<char> decompressed;
-            if (compression == "zlib")
+            if (compression == "zlib" || compression == "gzip")
             {
-                // Decompress with zlib
+                // Decompress with zlib (gzip is just zlib with different header)
                 z_stream stream;
                 stream.zalloc = Z_NULL;
                 stream.zfree = Z_NULL;
@@ -244,9 +245,16 @@ namespace tmx
                 stream.avail_in = static_cast<uInt>(outLen);
                 stream.next_in = reinterpret_cast<Bytef*>(decoded.data());
 
-                if (inflateInit(&stream) != Z_OK)
+                // Use inflateInit2 with window bits to support both zlib and gzip
+                int windowBits = 15;  // Default for zlib
+                if (compression == "gzip")
                 {
-                    return tl::make_unexpected("Failed to initialize zlib decompression");
+                    windowBits += 16;  // Add 16 for gzip format
+                }
+                
+                if (inflateInit2(&stream, windowBits) != Z_OK)
+                {
+                    return tl::make_unexpected("Failed to initialize " + compression + " decompression");
                 }
 
                 decompressed.resize(width * height * 4); // 4 bytes per tile ID
@@ -258,13 +266,51 @@ namespace tmx
 
                 if (result != Z_STREAM_END)
                 {
-                    return tl::make_unexpected("Failed to decompress zlib data");
+                    return tl::make_unexpected("Failed to decompress " + compression + " data");
                 }
+                
+                // Resize to actual decompressed size
+                decompressed.resize(stream.total_out);
             }
-            else
+            else if (compression == "zstd")
+            {
+                // Decompress with zstd
+                size_t const decompressedSize = ZSTD_getFrameContentSize(decoded.data(), outLen);
+                if (decompressedSize == ZSTD_CONTENTSIZE_ERROR)
+                {
+                    return tl::make_unexpected("Invalid zstd frame");
+                }
+                if (decompressedSize == ZSTD_CONTENTSIZE_UNKNOWN)
+                {
+                    // If size is unknown, use expected size
+                    decompressed.resize(width * height * 4);
+                }
+                else
+                {
+                    decompressed.resize(decompressedSize);
+                }
+                
+                size_t const actualSize = ZSTD_decompress(
+                    decompressed.data(), decompressed.size(),
+                    decoded.data(), outLen
+                );
+                
+                if (ZSTD_isError(actualSize))
+                {
+                    return tl::make_unexpected("Failed to decompress zstd data: " + 
+                                              std::string(ZSTD_getErrorName(actualSize)));
+                }
+                
+                decompressed.resize(actualSize);
+            }
+            else if (compression.empty())
             {
                 // No compression
                 decompressed.assign(decoded.begin(), decoded.begin() + outLen);
+            }
+            else
+            {
+                return tl::make_unexpected("Unsupported compression: " + compression);
             }
 
             // Convert bytes to uint32_t values
