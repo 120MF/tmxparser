@@ -26,7 +26,8 @@ tmxparser/
 │   ├── Map.cpp
 │   └── Parser.cpp
 ├── examples/            # 示例代码
-│   └── basic/          # 基础使用示例
+│   ├── basic/          # 基础使用示例
+│   └── SDL3/           # SDL3 渲染示例
 ├── tests/              # 单元测试
 ├── assets/             # 测试资源文件
 └── cmake/              # CMake 构建脚本
@@ -59,7 +60,7 @@ public:
 }
 ```
 
-> **注意**: 渲染功能将在 examples 中使用 SDL3 实现，库本身不包含渲染器。
+> **注意**: 渲染功能已在 examples/SDL3 中使用 SDL3 实现，库本身不包含渲染器。
 
 ## 开发准则
 
@@ -123,19 +124,102 @@ TMXParser 是一个纯粹的解析库，不包含渲染功能。渲染应该在�
 
 ### SDL3 渲染示例
 
-渲染功能可以在 examples 中使用 SDL3 实现。基本步骤：
+项目已经在 `examples/SDL3` 目录下提供了完整的 SDL3 渲染示例实现。该示例展示了如何：
 
-1. **加载地图数据**：
+1. **加载 TMX 地图数据**：
    ```cpp
-   auto mapResult = tmx::Parser::parseFromFile("map.tmx");
+   auto result = tmx::Parser::parseFromFile("test.tmx");
    ```
 
-2. **在应用中实现渲染**：
-   - 加载瓦片集纹理
-   - 根据图层数据渲染瓦片
-   - 处理图层透明度和可见性
+2. **创建 SDL3 窗口和渲染器**：
+   - 窗口大小根据地图尺寸自动计算
+   - 使用 SDL3 的硬件加速渲染器
 
-3. **渲染优化建议**：
+3. **加载瓦片集纹理**：
+   - 使用 stb_image 加载 PNG 格式图像
+   - 支持透明度和 RGBA 格式
+   - 将图像数据转换为 SDL 纹理
+
+4. **渲染瓦片地图**：
+   - 遍历图层的瓦片数据
+   - 根据 firstgid 计算正确的瓦片 ID
+   - 使用源矩形和目标矩形进行精确渲染
+   - 支持多图层渲染
+
+5. **事件处理**：
+   - 支持 ESC 键退出
+   - 支持窗口关闭事件
+
+#### 运行 SDL3 示例
+
+```bash
+# 构建项目
+mkdir build && cd build
+cmake .. -DCMAKE_BUILD_TYPE=Release
+make -j$(nproc)
+
+# 运行 SDL3 示例
+./examples/SDL3/tmxparser_sdl3_example
+```
+
+#### 渲染核心代码片段
+
+```cpp
+// 加载瓦片集纹理（使用 stb_image）
+int width, height, channels;
+unsigned char* imageData = stbi_load(imageSource.string().c_str(), &width, &height, &channels, 4);
+
+SDL_Surface* surface = SDL_CreateSurfaceFrom(
+    width, height,
+    SDL_PIXELFORMAT_RGBA32,
+    imageData,
+    width * 4
+);
+SDL_Texture* tilesetTexture = SDL_CreateTextureFromSurface(renderer, surface);
+
+// 渲染瓦片
+for (uint32_t y = 0; y < layer.height; ++y) {
+    for (uint32_t x = 0; x < layer.width; ++x) {
+        uint32_t gid = layer.data[y * layer.width + x];
+        if (gid == 0) continue; // 空瓦片
+        
+        // 计算瓦片 ID
+        uint32_t tileId = gid - tileset.firstgid;
+        
+        // 计算源位置（在瓦片集中）
+        uint32_t tileX = (tileId % tileset.columns) * tileset.tilewidth;
+        uint32_t tileY = (tileId / tileset.columns) * tileset.tileheight;
+        
+        SDL_FRect srcRect = {
+            static_cast<float>(tileX),
+            static_cast<float>(tileY),
+            static_cast<float>(tileset.tilewidth),
+            static_cast<float>(tileset.tileheight)
+        };
+        
+        // 目标位置（在屏幕上）
+        SDL_FRect destRect = {
+            static_cast<float>(x * map.tilewidth),
+            static_cast<float>(y * map.tileheight),
+            static_cast<float>(map.tilewidth),
+            static_cast<float>(map.tileheight)
+        };
+        
+        SDL_RenderTexture(renderer, tilesetTexture, &srcRect, &destRect);
+    }
+}
+```
+
+#### 依赖项
+
+SDL3 示例需要以下依赖：
+- **SDL3**: 通过 CMake FetchContent 自动下载和构建
+- **stb_image**: 单头文件库，用于加载 PNG/JPG 等格式图像
+- **X11 开发库** (Linux): `libx11-dev`, `libxext-dev` 等
+
+#### 渲染优化建议
+
+对于生产环境，建议进一步优化：
    - 使用纹理图集减少绘制调用
    - 实现视锥裁剪只渲染可见区域
    - 使用批量渲染提高性能
@@ -153,6 +237,8 @@ TMXParser 是一个纯粹的解析库，不包含渲染功能。渲染应该在�
 - base64       # Base64 解码
 - zlib         # 数据解压缩
 - zstd         # 高效压缩
+- SDL3         # 图形渲染（仅示例使用）
+- stb_image    # 图像加载（仅示例使用）
 ```
 
 ### 构建步骤
@@ -203,67 +289,87 @@ int main() {
 
 ### SDL3 渲染集成示例
 
-渲染功能应在应用层实现。以下是使用 SDL3 的基本示例：
+项目在 `examples/SDL3` 目录提供了完整的 SDL3 渲染实现。以下是简化的代码结构：
 
 ```cpp
 #include <tmx/tmx.hpp>
 #include <SDL3/SDL.h>
-#include <SDL3/SDL_image.h>
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
 
 int main() {
-    // 初始化 SDL
-    SDL_Init(SDL_INIT_VIDEO);
-    auto window = SDL_CreateWindow("TMX Viewer", 800, 600, 0);
-    auto renderer = SDL_CreateRenderer(window, nullptr);
-    
     // 解析地图
-    auto mapResult = tmx::Parser::parseFromFile("level1.tmx");
-    if (!mapResult) {
+    auto result = tmx::Parser::parseFromFile("test.tmx");
+    if (!result) {
+        std::cerr << "解析失败: " << result.error() << std::endl;
         return 1;
     }
-    const auto& map = *mapResult;
+    const auto& map = *result;
     
-    // 加载瓦片集纹理（需要用户实现）
-    std::vector<SDL_Texture*> tilesetTextures;
-    for (const auto& tileset : map.tilesets) {
-        auto surface = IMG_Load(tileset.image.c_str());
-        auto texture = SDL_CreateTextureFromSurface(renderer, surface);
-        SDL_DestroySurface(surface);
-        tilesetTextures.push_back(texture);
-    }
+    // 初始化 SDL3
+    SDL_Init(SDL_INIT_VIDEO);
+    auto window = SDL_CreateWindow(
+        "TMXParser SDL3 Example",
+        map.width * map.tilewidth,
+        map.height * map.tileheight,
+        0
+    );
+    auto renderer = SDL_CreateRenderer(window, nullptr);
     
-    // 渲染循环
+    // 使用 stb_image 加载瓦片集纹理
+    const auto& tileset = map.tilesets[0];
+    int width, height, channels;
+    unsigned char* imageData = stbi_load(tileset.image.c_str(), &width, &height, &channels, 4);
+    
+    auto surface = SDL_CreateSurfaceFrom(width, height, SDL_PIXELFORMAT_RGBA32, imageData, width * 4);
+    auto tilesetTexture = SDL_CreateTextureFromSurface(renderer, surface);
+    SDL_DestroySurface(surface);
+    stbi_image_free(imageData);
+    
+    // 主渲染循环
     bool running = true;
+    SDL_Event event;
     while (running) {
-        SDL_Event event;
         while (SDL_PollEvent(&event)) {
-            if (event.type == SDL_EVENT_QUIT) running = false;
+            if (event.type == SDL_EVENT_QUIT || 
+                (event.type == SDL_EVENT_KEY_DOWN && event.key.key == SDLK_ESCAPE)) {
+                running = false;
+            }
         }
         
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
         SDL_RenderClear(renderer);
         
-        // 渲染图层（需要用户实现渲染逻辑）
-        for (const auto& layer : map.layers) {
-            if (!layer.visible) continue;
-            
-            for (uint32_t y = 0; y < layer.height; ++y) {
-                for (uint32_t x = 0; x < layer.width; ++x) {
-                    uint32_t tileId = layer.data[y * layer.width + x];
-                    if (tileId == 0) continue;
-                    
-                    // 根据 tileId 确定使用哪个瓦片集和源矩形
-                    // 然后渲染到目标位置
-                    // ... 渲染代码 ...
-                }
+        // 渲染瓦片
+        const auto& layer = map.layers[0];
+        for (uint32_t y = 0; y < layer.height; ++y) {
+            for (uint32_t x = 0; x < layer.width; ++x) {
+                uint32_t gid = layer.data[y * layer.width + x];
+                if (gid == 0) continue;
+                
+                uint32_t tileId = gid - tileset.firstgid;
+                uint32_t tileX = (tileId % tileset.columns) * tileset.tilewidth;
+                uint32_t tileY = (tileId / tileset.columns) * tileset.tileheight;
+                
+                SDL_FRect srcRect = {
+                    static_cast<float>(tileX), static_cast<float>(tileY),
+                    static_cast<float>(tileset.tilewidth), static_cast<float>(tileset.tileheight)
+                };
+                SDL_FRect destRect = {
+                    static_cast<float>(x * map.tilewidth), static_cast<float>(y * map.tileheight),
+                    static_cast<float>(map.tilewidth), static_cast<float>(map.tileheight)
+                };
+                
+                SDL_RenderTexture(renderer, tilesetTexture, &srcRect, &destRect);
             }
         }
         
         SDL_RenderPresent(renderer);
+        SDL_Delay(16); // ~60 FPS
     }
     
     // 清理
-    for (auto tex : tilesetTextures) SDL_DestroyTexture(tex);
+    SDL_DestroyTexture(tilesetTexture);
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
     SDL_Quit();
@@ -272,13 +378,13 @@ int main() {
 }
 ```
 
-> **提示**: 完整的渲染实现将在 examples 目录中提供。
+> **提示**: 完整的实现请参考 `examples/SDL3/main.cpp`，包含了错误处理和更详细的注释。
 
 ## 未来发展方向
 
 ### 短期目标 (1-2 个月)
 1. 完善基础 TMX 功能支持
-2. 提供完整的 SDL3 渲染示例
+2. ✅ 提供完整的 SDL3 渲染示例
 3. 添加完整的单元测试套件
 4. 性能优化和基准测试
 
