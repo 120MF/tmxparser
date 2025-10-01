@@ -3,6 +3,7 @@
 #include <iostream>
 #include <tmx/tmx.hpp>
 #include <filesystem>
+#include <vector>
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
@@ -27,6 +28,20 @@ int main(int argc, char* argv[])
     std::cout << "  Size: " << map.width << "x" << map.height << std::endl;
     std::cout << "  Tile size: " << map.tilewidth << "x" << map.tileheight << std::endl;
 
+    // Create render data (pre-calculate all tile positions)
+    std::cout << "Preparing render data..." << std::endl;
+    auto renderData = tmx::render::createRenderData(map, assetDir.string());
+    
+    std::cout << "  Tilesets: " << renderData.tilesets.size() << std::endl;
+    std::cout << "  Layers: " << renderData.layers.size() << std::endl;
+    
+    size_t totalTiles = 0;
+    for (const auto& layer : renderData.layers)
+    {
+        totalTiles += layer.tiles.size();
+    }
+    std::cout << "  Renderable tiles: " << totalTiles << std::endl;
+
     // Initialize SDL3
     if (!SDL_Init(SDL_INIT_VIDEO))
     {
@@ -35,8 +50,8 @@ int main(int argc, char* argv[])
     }
 
     // Create window
-    const auto windowWidth = map.width * map.tilewidth;
-    const auto windowHeight = map.height * map.tileheight;
+    const int windowWidth = static_cast<int>(renderData.pixelWidth);
+    const int windowHeight = static_cast<int>(renderData.pixelHeight);
 
     SDL_Window* window = SDL_CreateWindow(
         "TMXParser SDL3 Example",
@@ -62,51 +77,53 @@ int main(int argc, char* argv[])
         return 1;
     }
 
-    // Load tileset texture
-    SDL_Texture* tilesetTexture = nullptr;
+    // Load tileset textures
+    std::vector<SDL_Texture*> tilesetTextures;
+    tilesetTextures.reserve(renderData.tilesets.size());
 
-    if (!map.tilesets.empty())
+    for (const auto& tilesetInfo : renderData.tilesets)
     {
-        const auto& tileset = map.tilesets[0];
-        const std::filesystem::path imageSource = assetDir / tileset.image;
-
-        std::cout << "Loading tileset from: " << imageSource << std::endl;
-
+        std::cout << "Loading tileset: " << tilesetInfo.imagePath << std::endl;
+        
         // Load image using stb_image
         int width, height, channels;
-        unsigned char* imageData = stbi_load(imageSource.string().c_str(), &width, &height, &channels, 4);
-
+        unsigned char* imageData = stbi_load(tilesetInfo.imagePath.c_str(), &width, &height, &channels, 4);
+        
         if (!imageData)
         {
             std::cerr << "Failed to load tileset image: " << stbi_failure_reason() << std::endl;
+            tilesetTextures.push_back(nullptr);
+            continue;
         }
-        else
+        
+        // Create SDL surface from image data
+        SDL_Surface* surface = SDL_CreateSurfaceFrom(
+            width, height,
+            SDL_PIXELFORMAT_RGBA32,
+            imageData,
+            width * 4
+        );
+        
+        if (!surface)
         {
-            // Create SDL surface from image data
-            SDL_Surface* surface = SDL_CreateSurfaceFrom(
-                width, height,
-                SDL_PIXELFORMAT_RGBA32,
-                imageData,
-                width * 4
-            );
-
-            if (!surface)
-            {
-                std::cerr << "Failed to create surface: " << SDL_GetError() << std::endl;
-                stbi_image_free(imageData);
-            }
-            else
-            {
-                tilesetTexture = SDL_CreateTextureFromSurface(renderer, surface);
-                SDL_DestroySurface(surface);
-                stbi_image_free(imageData);
-
-                if (!tilesetTexture)
-                {
-                    std::cerr << "Failed to create texture: " << SDL_GetError() << std::endl;
-                }
-            }
+            std::cerr << "Failed to create surface: " << SDL_GetError() << std::endl;
+            stbi_image_free(imageData);
+            tilesetTextures.push_back(nullptr);
+            continue;
         }
+        
+        SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
+        SDL_DestroySurface(surface);
+        stbi_image_free(imageData);
+        
+        if (!texture)
+        {
+            std::cerr << "Failed to create texture: " << SDL_GetError() << std::endl;
+            tilesetTextures.push_back(nullptr);
+            continue;
+        }
+        
+        tilesetTextures.push_back(texture);
     }
 
     std::cout << "Rendering map... Press ESC to quit." << std::endl;
@@ -137,48 +154,50 @@ int main(int argc, char* argv[])
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
         SDL_RenderClear(renderer);
 
-        // Render tiles
-        if (tilesetTexture && !map.layers.empty())
+        // Render tiles using pre-calculated render data
+        for (const auto& layer : renderData.layers)
         {
-            const auto& layer = map.layers[0];
-            const auto& tileset = map.tilesets[0];
+            if (!layer.visible)
+                continue;
 
-            for (std::uint32_t y = 0; y < layer.height; ++y)
+            // Set layer opacity if needed
+            for (const auto& tile : layer.tiles)
             {
-                for (std::uint32_t x = 0; x < layer.width; ++x)
+                // Get the tileset texture
+                if (tile.tilesetIndex >= tilesetTextures.size())
+                    continue;
+
+                SDL_Texture* texture = tilesetTextures[tile.tilesetIndex];
+                if (!texture)
+                    continue;
+
+                // Use pre-calculated rectangles (no runtime calculations!)
+                SDL_FRect srcRect = {
+                    static_cast<float>(tile.srcX),
+                    static_cast<float>(tile.srcY),
+                    static_cast<float>(tile.srcW),
+                    static_cast<float>(tile.srcH)
+                };
+
+                SDL_FRect destRect = {
+                    static_cast<float>(tile.destX),
+                    static_cast<float>(tile.destY),
+                    static_cast<float>(tile.destW),
+                    static_cast<float>(tile.destH)
+                };
+
+                // Apply opacity if not fully opaque
+                if (tile.opacity < 1.0f)
                 {
-                    const std::uint32_t index = y * layer.width + x;
-                    if (index >= layer.data.size())
-                        continue;
+                    SDL_SetTextureAlphaModFloat(texture, tile.opacity);
+                }
 
-                    const std::uint32_t gid = layer.data[index];
-                    if (gid == 0)
-                        continue; // Empty tile
+                SDL_RenderTexture(renderer, texture, &srcRect, &destRect);
 
-                    // Calculate tile ID (subtract firstgid)
-                    std::uint32_t tileId = gid - tileset.firstgid;
-
-                    // Calculate source position in tileset
-                    std::uint32_t tileX = (tileId % tileset.columns) * tileset.tilewidth;
-                    std::uint32_t tileY = (tileId / tileset.columns) * tileset.tileheight;
-
-                    // Source rectangle in tileset
-                    SDL_FRect srcRect = {
-                        static_cast<float>(tileX),
-                        static_cast<float>(tileY),
-                        static_cast<float>(tileset.tilewidth),
-                        static_cast<float>(tileset.tileheight)
-                    };
-
-                    // Destination rectangle on screen
-                    SDL_FRect destRect = {
-                        static_cast<float>(x * map.tilewidth),
-                        static_cast<float>(y * map.tileheight),
-                        static_cast<float>(map.tilewidth),
-                        static_cast<float>(map.tileheight)
-                    };
-
-                    SDL_RenderTexture(renderer, tilesetTexture, &srcRect, &destRect);
+                // Reset opacity
+                if (tile.opacity < 1.0f)
+                {
+                    SDL_SetTextureAlphaModFloat(texture, 1.0f);
                 }
             }
         }
@@ -191,8 +210,11 @@ int main(int argc, char* argv[])
     }
 
     // Cleanup
-    if (tilesetTexture)
-        SDL_DestroyTexture(tilesetTexture);
+    for (auto* texture : tilesetTextures)
+    {
+        if (texture)
+            SDL_DestroyTexture(texture);
+    }
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
     SDL_Quit();
