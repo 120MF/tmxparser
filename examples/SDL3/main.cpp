@@ -147,11 +147,11 @@ int main(int argc, char* argv[])
             {
                 for (std::uint32_t x = 0; x < layer.width; ++x)
                 {
-                    std::uint32_t index = y * layer.width + x;
+                    const std::uint32_t index = y * layer.width + x;
                     if (index >= layer.data.size())
                         continue;
 
-                    std::uint32_t gid = layer.data[index];
+                    const std::uint32_t gid = layer.data[index];
                     if (gid == 0)
                         continue; // Empty tile
 
