@@ -31,10 +31,10 @@ int main(int argc, char* argv[])
     // Create render data (pre-calculate all tile positions)
     std::cout << "Preparing render data..." << std::endl;
     auto renderData = tmx::render::createRenderData(map, assetDir.string());
-    
+
     std::cout << "  Tilesets: " << renderData.tilesets.size() << std::endl;
     std::cout << "  Layers: " << renderData.layers.size() << std::endl;
-    
+
     size_t totalTiles = 0;
     for (const auto& layer : renderData.layers)
     {
@@ -84,18 +84,18 @@ int main(int argc, char* argv[])
     for (const auto& tilesetInfo : renderData.tilesets)
     {
         std::cout << "Loading tileset: " << tilesetInfo.imagePath << std::endl;
-        
+
         // Load image using stb_image
         int width, height, channels;
         unsigned char* imageData = stbi_load(tilesetInfo.imagePath.c_str(), &width, &height, &channels, 4);
-        
+
         if (!imageData)
         {
             std::cerr << "Failed to load tileset image: " << stbi_failure_reason() << std::endl;
             tilesetTextures.push_back(nullptr);
             continue;
         }
-        
+
         // Create SDL surface from image data
         SDL_Surface* surface = SDL_CreateSurfaceFrom(
             width, height,
@@ -103,7 +103,7 @@ int main(int argc, char* argv[])
             imageData,
             width * 4
         );
-        
+
         if (!surface)
         {
             std::cerr << "Failed to create surface: " << SDL_GetError() << std::endl;
@@ -111,18 +111,18 @@ int main(int argc, char* argv[])
             tilesetTextures.push_back(nullptr);
             continue;
         }
-        
+
         SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
         SDL_DestroySurface(surface);
         stbi_image_free(imageData);
-        
+
         if (!texture)
         {
             std::cerr << "Failed to create texture: " << SDL_GetError() << std::endl;
             tilesetTextures.push_back(nullptr);
             continue;
         }
-        
+
         tilesetTextures.push_back(texture);
     }
 

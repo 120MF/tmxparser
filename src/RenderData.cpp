@@ -72,7 +72,7 @@ namespace tmx::render
                     // Find which tileset this tile belongs to
                     std::uint32_t tilesetIndex = 0;
                     const map::Tileset* tileset = nullptr;
-                    
+
                     for (std::uint32_t i = 0; i < map.tilesets.size(); ++i)
                     {
                         if (gid >= map.tilesets[i].firstgid)
@@ -102,7 +102,7 @@ namespace tmx::render
                     const std::uint32_t destY = y * map.tileheight;
 
                     // Create tile render info
-                    TileRenderInfo tileInfo;
+                    TileRenderInfo tileInfo{};
                     tileInfo.tileId = tileId;
                     tileInfo.srcX = tileX;
                     tileInfo.srcY = tileY;
