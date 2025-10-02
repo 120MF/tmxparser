@@ -1,0 +1,37 @@
+@PACKAGE_INIT@
+
+# Include dependencies
+include(CMakeFindDependencyMacro)
+
+# Find installed dependencies
+# These were installed alongside tmxparser and should be in the same prefix
+
+# pugixml provides a config file
+if(NOT TARGET pugixml::pugixml)
+    find_dependency(pugixml QUIET CONFIG PATHS "${CMAKE_CURRENT_LIST_DIR}/../../../")
+endif()
+
+# tl-expected provides a config file
+if(NOT TARGET tl::expected)
+    find_dependency(tl-expected QUIET CONFIG PATHS "${CMAKE_CURRENT_LIST_DIR}/../../../share/cmake")
+endif()
+
+# base64 provides a config file
+if(NOT TARGET aklomp::base64)
+    find_dependency(base64 QUIET CONFIG PATHS "${CMAKE_CURRENT_LIST_DIR}/../../../")
+endif()
+
+# zstd provides a config file  
+if(NOT TARGET zstd::libzstd_static)
+    find_dependency(zstd QUIET CONFIG PATHS "${CMAKE_CURRENT_LIST_DIR}/../../../")
+endif()
+
+# ZLIB is a standard CMake package
+if(NOT TARGET ZLIB::ZLIB)
+    find_dependency(ZLIB REQUIRED)
+endif()
+
+# Include the exported targets
+include("${CMAKE_CURRENT_LIST_DIR}/tmxparserTargets.cmake")
+
+check_required_components(tmxparser)
