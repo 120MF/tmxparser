@@ -4,6 +4,9 @@ add_library(tmxparser STATIC
     RenderData.cpp
 )
 
+# Create alias for consistent usage in both build and install
+add_library(tmxparser::tmxparser ALIAS tmxparser)
+
 target_include_directories(tmxparser 
     PUBLIC 
         $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
