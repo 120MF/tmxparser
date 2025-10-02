@@ -18,6 +18,24 @@ namespace tmx::render
         std::uint32_t destW, destH;  // Destination dimensions on screen (pixels)
         std::uint32_t tilesetIndex;  // Which tileset this tile belongs to
         float opacity;               // Layer opacity (0.0 - 1.0)
+        bool isAnimated;             // Whether this tile has animation
+        std::uint32_t animationIndex; // Index into TilesetRenderInfo::animations (-1 if not animated)
+    };
+
+    /// @brief Pre-calculated animation frame information
+    struct AnimationFrameInfo
+    {
+        std::uint32_t tileId;        // Tile ID for this frame (after subtracting firstgid)
+        std::uint32_t srcX, srcY;    // Source position in tileset (pixels)
+        std::uint32_t duration;      // Duration in milliseconds
+    };
+
+    /// @brief Animation data for a specific tile
+    struct TileAnimationInfo
+    {
+        std::uint32_t baseTileId;    // The base tile ID that has this animation
+        std::vector<AnimationFrameInfo> frames;
+        std::uint32_t totalDuration; // Total animation duration in milliseconds
     };
 
     /// @brief Pre-calculated layer rendering information
@@ -41,6 +59,7 @@ namespace tmx::render
         std::uint32_t tileHeight;
         std::uint32_t columns;
         std::uint32_t tileCount;
+        std::vector<TileAnimationInfo> animations; // Animation data for tiles in this tileset
     };
 
     /// @brief Complete rendering data for a map
