@@ -55,6 +55,24 @@ namespace tmx::map
         [[nodiscard]] auto getBool(const std::string& name, bool defaultValue = false) const -> bool;
     };
 
+    struct Frame
+    {
+        std::uint32_t tileid;      // The local tile ID within the tileset
+        std::uint32_t duration;    // How long (in milliseconds) this frame should be displayed
+    };
+
+    struct Animation
+    {
+        std::vector<Frame> frames;
+    };
+
+    struct Tile
+    {
+        std::uint32_t id;          // Local ID within the tileset
+        Properties properties;
+        Animation animation;       // Optional animation data
+    };
+
     struct Tileset
     {
         std::uint32_t firstgid;
@@ -63,11 +81,12 @@ namespace tmx::map
         std::uint32_t tileheight;
         std::uint32_t tilecount;
         std::uint32_t columns;
-        std::string source; // For external tilesets
+        std::string source; // For external tilesets (.tsx file path)
         std::string image;
         std::uint32_t imagewidth;
         std::uint32_t imageheight;
         Properties properties;
+        std::vector<Tile> tiles; // Tiles with animations or properties
     };
 
     struct Chunk
