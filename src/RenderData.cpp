@@ -41,6 +41,51 @@ namespace tmx::render
                 tilesetInfo.imagePath = tileset.image;
             }
 
+            // Process animations
+            for (const auto& tile : tileset.tiles)
+            {
+                if (!tile.animation.frames.empty())
+                {
+                    TileAnimationInfo animInfo;
+                    animInfo.baseTileId = tile.id;
+                    animInfo.totalDuration = 0;
+
+                    for (const auto& frame : tile.animation.frames)
+                    {
+                        AnimationFrameInfo frameInfo;
+                        frameInfo.tileId = frame.tileid;
+                        frameInfo.duration = frame.duration;
+                        
+                        // Pre-calculate source position for this frame
+                        frameInfo.srcX = (frame.tileid % tileset.columns) * tileset.tilewidth;
+                        frameInfo.srcY = (frame.tileid / tileset.columns) * tileset.tileheight;
+                        
+                        animInfo.totalDuration += frame.duration;
+                        animInfo.frames.push_back(frameInfo);
+                    }
+
+                    // Build flattened time-to-frame-index lookup table
+                    // This eliminates the need for loop-based frame search at runtime
+                    animInfo.timeToFrameIndex.resize(animInfo.totalDuration);
+                    std::uint32_t currentTime = 0;
+                    for (std::uint32_t frameIdx = 0; frameIdx < animInfo.frames.size(); ++frameIdx)
+                    {
+                        const auto& frame = animInfo.frames[frameIdx];
+                        // Fill the lookup table for this frame's duration
+                        for (std::uint32_t t = 0; t < frame.duration; ++t)
+                        {
+                            if (currentTime + t < animInfo.totalDuration)
+                            {
+                                animInfo.timeToFrameIndex[currentTime + t] = frameIdx;
+                            }
+                        }
+                        currentTime += frame.duration;
+                    }
+
+                    tilesetInfo.animations.push_back(std::move(animInfo));
+                }
+            }
+
             renderData.tilesets.push_back(std::move(tilesetInfo));
         }
 
@@ -114,6 +159,21 @@ namespace tmx::render
                     tileInfo.destH = map.tileheight;
                     tileInfo.tilesetIndex = tilesetIndex;
                     tileInfo.opacity = layer.opacity;
+                    
+                    // Check if this tile has an animation
+                    tileInfo.isAnimated = false;
+                    tileInfo.animationIndex = static_cast<std::uint32_t>(-1);
+                    
+                    const auto& tilesetRenderInfo = renderData.tilesets[tilesetIndex];
+                    for (std::uint32_t animIdx = 0; animIdx < tilesetRenderInfo.animations.size(); ++animIdx)
+                    {
+                        if (tilesetRenderInfo.animations[animIdx].baseTileId == tileId)
+                        {
+                            tileInfo.isAnimated = true;
+                            tileInfo.animationIndex = animIdx;
+                            break;
+                        }
+                    }
 
                     layerData.tiles.push_back(std::move(tileInfo));
                 }

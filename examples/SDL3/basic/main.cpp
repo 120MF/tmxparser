@@ -3,14 +3,11 @@
 #include <iostream>
 #include <tmx/tmx.hpp>
 #include <filesystem>
-#include <vector>
-
-#define STB_IMAGE_IMPLEMENTATION
-#include "stb_image.h"
+#include "../common/sdl3_utils.hpp"
 
 int main(int argc, char* argv[])
 {
-    std::cout << "TMX Parser SDL3 Rendering Example" << std::endl;
+    std::cout << "TMX Parser SDL3 Basic Rendering Example" << std::endl;
 
     // Parse the TMX file
     std::filesystem::path assetDir = ASSET_DIR;
@@ -43,88 +40,28 @@ int main(int argc, char* argv[])
     std::cout << "  Renderable tiles: " << totalTiles << std::endl;
 
     // Initialize SDL3
-    if (!SDL_Init(SDL_INIT_VIDEO))
+    if (!tmx::sdl3::initSDL())
     {
-        std::cerr << "Failed to initialize SDL3: " << SDL_GetError() << std::endl;
         return 1;
     }
 
-    // Create window
-    const int windowWidth = static_cast<int>(renderData.pixelWidth);
-    const int windowHeight = static_cast<int>(renderData.pixelHeight);
-
-    SDL_Window* window = SDL_CreateWindow(
-        "TMXParser SDL3 Example",
-        windowWidth,
-        windowHeight,
-        0
-    );
-
-    if (!window)
+    // Create window and renderer
+    SDL_Window* window = nullptr;
+    SDL_Renderer* renderer = nullptr;
+    
+    if (!tmx::sdl3::createWindowAndRenderer(
+        "TMXParser SDL3 Basic Example",
+        static_cast<int>(renderData.pixelWidth),
+        static_cast<int>(renderData.pixelHeight),
+        &window,
+        &renderer))
     {
-        std::cerr << "Failed to create window: " << SDL_GetError() << std::endl;
-        SDL_Quit();
-        return 1;
-    }
-
-    // Create renderer
-    SDL_Renderer* renderer = SDL_CreateRenderer(window, nullptr);
-    if (!renderer)
-    {
-        std::cerr << "Failed to create renderer: " << SDL_GetError() << std::endl;
-        SDL_DestroyWindow(window);
         SDL_Quit();
         return 1;
     }
 
     // Load tileset textures
-    std::vector<SDL_Texture*> tilesetTextures;
-    tilesetTextures.reserve(renderData.tilesets.size());
-
-    for (const auto& tilesetInfo : renderData.tilesets)
-    {
-        std::cout << "Loading tileset: " << tilesetInfo.imagePath << std::endl;
-
-        // Load image using stb_image
-        int width, height, channels;
-        unsigned char* imageData = stbi_load(tilesetInfo.imagePath.c_str(), &width, &height, &channels, 4);
-
-        if (!imageData)
-        {
-            std::cerr << "Failed to load tileset image: " << stbi_failure_reason() << std::endl;
-            tilesetTextures.push_back(nullptr);
-            continue;
-        }
-
-        // Create SDL surface from image data
-        SDL_Surface* surface = SDL_CreateSurfaceFrom(
-            width, height,
-            SDL_PIXELFORMAT_RGBA32,
-            imageData,
-            width * 4
-        );
-
-        if (!surface)
-        {
-            std::cerr << "Failed to create surface: " << SDL_GetError() << std::endl;
-            stbi_image_free(imageData);
-            tilesetTextures.push_back(nullptr);
-            continue;
-        }
-
-        SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
-        SDL_DestroySurface(surface);
-        stbi_image_free(imageData);
-
-        if (!texture)
-        {
-            std::cerr << "Failed to create texture: " << SDL_GetError() << std::endl;
-            tilesetTextures.push_back(nullptr);
-            continue;
-        }
-
-        tilesetTextures.push_back(texture);
-    }
+    auto tilesetTextures = tmx::sdl3::loadTilesetTextures(renderer, renderData);
 
     std::cout << "Rendering map... Press ESC to quit." << std::endl;
 
@@ -160,7 +97,6 @@ int main(int argc, char* argv[])
             if (!layer.visible)
                 continue;
 
-            // Set layer opacity if needed
             for (const auto& tile : layer.tiles)
             {
                 // Get the tileset texture
@@ -210,15 +146,8 @@ int main(int argc, char* argv[])
     }
 
     // Cleanup
-    for (auto* texture : tilesetTextures)
-    {
-        if (texture)
-            SDL_DestroyTexture(texture);
-    }
-    SDL_DestroyRenderer(renderer);
-    SDL_DestroyWindow(window);
-    SDL_Quit();
+    tmx::sdl3::cleanup(tilesetTextures, renderer, window);
 
-    std::cout << "SDL3 example finished successfully." << std::endl;
+    std::cout << "SDL3 basic example finished successfully." << std::endl;
     return 0;
 }

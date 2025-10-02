@@ -18,7 +18,22 @@ namespace tmx
         std::stringstream buffer;
         buffer << file.rdbuf();
 
-        return parseFromString(buffer.str());
+        pugi::xml_document doc;
+        const pugi::xml_parse_result result = doc.load_string(buffer.str().c_str());
+
+        if (!result)
+        {
+            return tl::make_unexpected("XML parsing error: " + std::string(result.description()));
+        }
+
+        const auto mapNode = doc.child("map");
+        if (!mapNode)
+        {
+            return tl::make_unexpected("No 'map' element found in XML");
+        }
+
+        // Pass the base path for resolving relative tileset sources
+        return parseMap(mapNode, path.parent_path());
     }
 
     auto Parser::parseFromString(const std::string& xml) -> tl::expected<map::Map, std::string>
@@ -37,10 +52,10 @@ namespace tmx
             return tl::make_unexpected("No 'map' element found in XML");
         }
 
-        return parseMap(mapNode);
+        return parseMap(mapNode, "");
     }
 
-    auto Parser::parseMap(const pugi::xml_node& mapNode) -> tl::expected<map::Map, std::string>
+    auto Parser::parseMap(const pugi::xml_node& mapNode, const std::filesystem::path& basePath) -> tl::expected<map::Map, std::string>
     {
         map::Map map;
 
@@ -76,7 +91,7 @@ namespace tmx
         // Parse tilesets
         for (auto tilesetNode : mapNode.children("tileset"))
         {
-            auto tilesetResult = parseTileset(tilesetNode);
+            auto tilesetResult = parseTileset(tilesetNode, basePath);
             if (!tilesetResult)
             {
                 return tl::make_unexpected(tilesetResult.error());
@@ -98,17 +113,37 @@ namespace tmx
         return map;
     }
 
-    auto Parser::parseTileset(const pugi::xml_node& tilesetNode) -> tl::expected<map::Tileset, std::string>
+    auto Parser::parseTileset(const pugi::xml_node& tilesetNode, const std::filesystem::path& basePath) -> tl::expected<map::Tileset, std::string>
     {
         map::Tileset tileset{};
 
         tileset.firstgid = tilesetNode.attribute("firstgid").as_uint();
+        
+        // Check if this is an external tileset reference
+        if (auto sourceAttr = tilesetNode.attribute("source"))
+        {
+            tileset.source = sourceAttr.as_string();
+            
+            // Resolve the external tileset path relative to the map file
+            std::filesystem::path tilesetPath = basePath / tileset.source;
+            
+            // Parse the external tileset file
+            auto externalTilesetResult = parseTilesetFile(tilesetPath, tileset.firstgid);
+            if (!externalTilesetResult)
+            {
+                return tl::make_unexpected(externalTilesetResult.error());
+            }
+            
+            // Return the parsed external tileset
+            return *externalTilesetResult;
+        }
+        
+        // Inline tileset definition
         tileset.name = tilesetNode.attribute("name").as_string();
         tileset.tilewidth = tilesetNode.attribute("tilewidth").as_uint();
         tileset.tileheight = tilesetNode.attribute("tileheight").as_uint();
         tileset.tilecount = tilesetNode.attribute("tilecount").as_uint();
         tileset.columns = tilesetNode.attribute("columns").as_uint();
-        tileset.source = tilesetNode.attribute("source").as_string();
 
         // Parse image
         if (const auto imageNode = tilesetNode.child("image"))
@@ -122,6 +157,17 @@ namespace tmx
         if (const auto propertiesNode = tilesetNode.child("properties"))
         {
             tileset.properties = parseProperties(propertiesNode);
+        }
+
+        // Parse tiles (with animations or properties)
+        for (auto tileNode : tilesetNode.children("tile"))
+        {
+            auto tileResult = parseTile(tileNode);
+            if (!tileResult)
+            {
+                return tl::make_unexpected(tileResult.error());
+            }
+            tileset.tiles.push_back(*tileResult);
         }
 
         return tileset;
@@ -333,5 +379,107 @@ namespace tmx
         }
 
         return data;
+    }
+
+    auto Parser::parseTilesetFile(const std::filesystem::path& path, std::uint32_t firstgid) -> tl::expected<map::Tileset, std::string>
+    {
+        std::ifstream file(path);
+        if (!file.is_open())
+        {
+            return tl::make_unexpected("Cannot open tileset file: " + path.string());
+        }
+
+        std::stringstream buffer;
+        buffer << file.rdbuf();
+
+        pugi::xml_document doc;
+        const pugi::xml_parse_result result = doc.load_string(buffer.str().c_str());
+
+        if (!result)
+        {
+            return tl::make_unexpected("XML parsing error in tileset file: " + std::string(result.description()));
+        }
+
+        const auto tilesetNode = doc.child("tileset");
+        if (!tilesetNode)
+        {
+            return tl::make_unexpected("No 'tileset' element found in TSX file");
+        }
+
+        map::Tileset tileset{};
+        tileset.firstgid = firstgid;
+        tileset.source = path.filename().string();
+        tileset.name = tilesetNode.attribute("name").as_string();
+        tileset.tilewidth = tilesetNode.attribute("tilewidth").as_uint();
+        tileset.tileheight = tilesetNode.attribute("tileheight").as_uint();
+        tileset.tilecount = tilesetNode.attribute("tilecount").as_uint();
+        tileset.columns = tilesetNode.attribute("columns").as_uint();
+
+        // Parse image
+        if (const auto imageNode = tilesetNode.child("image"))
+        {
+            tileset.image = imageNode.attribute("source").as_string();
+            tileset.imagewidth = imageNode.attribute("width").as_uint();
+            tileset.imageheight = imageNode.attribute("height").as_uint();
+        }
+
+        // Parse properties
+        if (const auto propertiesNode = tilesetNode.child("properties"))
+        {
+            tileset.properties = parseProperties(propertiesNode);
+        }
+
+        // Parse tiles (with animations or properties)
+        for (auto tileNode : tilesetNode.children("tile"))
+        {
+            auto tileResult = parseTile(tileNode);
+            if (!tileResult)
+            {
+                return tl::make_unexpected(tileResult.error());
+            }
+            tileset.tiles.push_back(*tileResult);
+        }
+
+        return tileset;
+    }
+
+    auto Parser::parseTile(const pugi::xml_node& tileNode) -> tl::expected<map::Tile, std::string>
+    {
+        map::Tile tile{};
+        tile.id = tileNode.attribute("id").as_uint();
+
+        // Parse properties
+        if (const auto propertiesNode = tileNode.child("properties"))
+        {
+            tile.properties = parseProperties(propertiesNode);
+        }
+
+        // Parse animation
+        if (const auto animationNode = tileNode.child("animation"))
+        {
+            auto animationResult = parseAnimation(animationNode);
+            if (!animationResult)
+            {
+                return tl::make_unexpected(animationResult.error());
+            }
+            tile.animation = *animationResult;
+        }
+
+        return tile;
+    }
+
+    auto Parser::parseAnimation(const pugi::xml_node& animationNode) -> tl::expected<map::Animation, std::string>
+    {
+        map::Animation animation{};
+
+        for (auto frameNode : animationNode.children("frame"))
+        {
+            map::Frame frame{};
+            frame.tileid = frameNode.attribute("tileid").as_uint();
+            frame.duration = frameNode.attribute("duration").as_uint();
+            animation.frames.push_back(frame);
+        }
+
+        return animation;
     }
 }

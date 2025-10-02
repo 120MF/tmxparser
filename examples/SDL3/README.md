@@ -1,16 +1,43 @@
 # SDL3 渲染示例
 
-这是一个完整的 SDL3 渲染示例，展示了如何使用 TMXParser 库解析和渲染 Tiled 地图编辑器导出的 TMX 文件。
+这是完整的 SDL3 渲染示例集合，展示了如何使用 TMXParser 库解析和渲染 Tiled 地图编辑器导出的 TMX 文件。
 
-## 功能特性
+## 示例列表
 
+### 1. Basic (基础渲染)
+
+位于 `basic/` 目录，展示基本的静态地图渲染。
+
+**特性：**
 - ✅ 使用 TMXParser 解析 TMX 文件
 - ✅ 使用 SDL3 创建窗口和渲染器
 - ✅ 使用 stb_image 加载 PNG 格式的瓦片集图像
-- ✅ 正确计算瓦片 ID 和渲染位置
-- ✅ 支持多图层渲染（当前示例渲染第一层）
+- ✅ 预计算渲染数据，无运行时计算
+- ✅ 支持多图层渲染和透明度
 - ✅ 事件处理（ESC 键退出、窗口关闭）
 - ✅ 60 FPS 渲染循环
+
+### 2. Animated (动画渲染)
+
+位于 `animated/` 目录，展示外部 TSX 瓦片集和瓦片动画的渲染。
+
+**特性：**
+- ✅ 外部 TSX 瓦片集解析 (.tsx 文件)
+- ✅ 瓦片动画系统
+- ✅ 基于时间的帧更新
+- ✅ 多个动画同时运行
+- ✅ 动画状态管理
+- ✅ 与静态瓦片混合渲染
+
+### 3. Common (公共库)
+
+位于 `common/` 目录，提供所有示例共享的工具函数。
+
+**功能：**
+- SDL3 初始化和窗口创建
+- 瓦片集纹理加载
+- 资源清理
+- 错误处理
 
 ## 构建和运行
 
@@ -20,10 +47,10 @@
 
 ```bash
 # Ubuntu/Debian
-sudo apt-get install libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxfixes-dev libxi-dev libxinerama-dev libxxf86vm-dev
+sudo apt-get install libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxfixes-dev libxi-dev libxinerama-dev
 
 # Fedora/RHEL
-sudo dnf install libX11-devel libXext-devel libXrandr-devel libXcursor-devel libXfixes-devel libXi-devel libXinerama-devel libXxf86vm-devel
+sudo dnf install libX11-devel libXext-devel libXrandr-devel libXcursor-devel libXfixes-devel libXi-devel libXinerama-devel
 ```
 
 ### 构建
@@ -31,86 +58,33 @@ sudo dnf install libX11-devel libXext-devel libXrandr-devel libXcursor-devel lib
 ```bash
 # 从项目根目录
 mkdir build && cd build
-cmake .. -DCMAKE_BUILD_TYPE=Release
+cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_TMX_EXAMPLES=ON
 make -j$(nproc)
 ```
 
 ### 运行
 
 ```bash
-# 从 build 目录
-./examples/SDL3/tmxparser_sdl3_example
+# 基础示例
+./examples/SDL3/basic/tmxparser_sdl3_basic
+
+# 动画示例
+./examples/SDL3/animated/tmxparser_sdl3_animated
 ```
 
-示例会加载 `assets/test.tmx` 地图文件和 `assets/test_tileset.png` 瓦片集图像，并在窗口中渲染地图。
+## 架构设计
 
-## 代码结构
+### 公共库 (tmxparser_sdl3_common)
 
-### 主要步骤
+提供可重用的 SDL3 工具函数，避免代码重复。
 
-1. **解析 TMX 文件**
-   ```cpp
-   auto result = tmx::Parser::parseFromFile(assetDir / "test.tmx");
-   ```
+### 渲染数据预计算
 
-2. **初始化 SDL3**
-   ```cpp
-   SDL_Init(SDL_INIT_VIDEO);
-   SDL_Window* window = SDL_CreateWindow(
-       "TMXParser SDL3 Example",
-       windowWidth, windowHeight, 0
-   );
-   SDL_Renderer* renderer = SDL_CreateRenderer(window, nullptr);
-   ```
+TMXParser 提供 `MapRenderData` 结构，预计算所有瓦片的渲染信息，消除运行时计算开销。
 
-3. **加载瓦片集纹理**
-   ```cpp
-   // 使用 stb_image 加载 PNG
-   unsigned char* imageData = stbi_load(imageSource.string().c_str(), &width, &height, &channels, 4);
-   
-   // 创建 SDL 表面和纹理
-   SDL_Surface* surface = SDL_CreateSurfaceFrom(width, height, SDL_PIXELFORMAT_RGBA32, imageData, width * 4);
-   SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
-   ```
+### 动画系统
 
-4. **渲染循环**
-   ```cpp
-   while (running) {
-       // 处理事件
-       while (SDL_PollEvent(&event)) { ... }
-       
-       // 清屏
-       SDL_RenderClear(renderer);
-       
-       // 渲染瓦片
-       for (uint32_t y = 0; y < layer.height; ++y) {
-           for (uint32_t x = 0; x < layer.width; ++x) {
-               // 计算源和目标矩形
-               // 渲染瓦片
-               SDL_RenderTexture(renderer, texture, &srcRect, &destRect);
-           }
-       }
-       
-       // 呈现
-       SDL_RenderPresent(renderer);
-   }
-   ```
-
-### 瓦片 ID 计算
-
-TMX 文件中的 GID（Global ID）需要减去瓦片集的 firstgid 才能得到正确的瓦片 ID：
-
-```cpp
-uint32_t gid = layer.data[y * layer.width + x];
-uint32_t tileId = gid - tileset.firstgid;
-```
-
-然后根据瓦片 ID 和瓦片集的列数计算在瓦片集图像中的位置：
-
-```cpp
-uint32_t tileX = (tileId % tileset.columns) * tileset.tilewidth;
-uint32_t tileY = (tileId / tileset.columns) * tileset.tileheight;
-```
+动画数据在解析时提取并预处理，运行时只需跟踪时间状态和当前帧。
 
 ## 依赖项
 
@@ -120,39 +94,21 @@ uint32_t tileY = (tileId / tileset.columns) * tileset.tileheight;
 
 ## 控制
 
+所有示例：
 - **ESC 键**: 退出程序
 - **窗口关闭按钮**: 退出程序
 
-## 扩展
+## 性能特点
 
-你可以基于这个示例进行扩展：
+1. **预计算优势**：
+   - 无需每帧计算瓦片位置
+   - 仅遍历非空瓦片
+   - 缓存友好的数据结构
 
-1. **支持多图层**: 遍历所有图层并渲染
-2. **支持图层透明度**: 使用 `layer.opacity` 设置渲染透明度
-3. **支持图层可见性**: 检查 `layer.visible` 决定是否渲染
-4. **添加相机控制**: 实现地图滚动和缩放
-5. **性能优化**: 
-   - 实现视锥裁剪，只渲染可见区域
-   - 使用批量渲染减少绘制调用
-   - 缓存瓦片纹理
-
-## 故障排除
-
-### "Failed to initialize SDL3: No available video device"
-
-这个错误通常出现在无头（headless）环境中，例如 CI/CD 环境或没有 X11 服务器的 SSH 会话。
-
-解决方案：
-- 在本地机器上运行（有图形界面）
-- 使用虚拟显示器（Xvfb）
-- 使用 SDL 的软件渲染器
-
-### "Failed to load tileset image"
-
-确保：
-- `assets/test_tileset.png` 文件存在
-- 文件路径正确（相对于可执行文件）
-- 图像文件格式正确（PNG）
+2. **渲染效率**：
+   - 直接使用预计算的矩形
+   - 最小化状态切换
+   - 批量渲染同一瓦片集
 
 ## 许可
 

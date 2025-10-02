@@ -34,6 +34,9 @@ tmxparser/
 ├── examples/            # 示例代码
 │   ├── basic/          # 基础使用示例
 │   └── SDL3/           # SDL3 渲染示例
+│       ├── basic/      # 基础渲染示例
+│       ├── animated/   # 动画渲染示例
+│       └── common/     # 公共SDL3工具库
 ├── tests/              # 单元测试（基于 CTest）
 │   ├── CMakeLists.txt # 测试配置
 │   └── test_parser.cpp # 解析器测试
@@ -43,6 +46,9 @@ tmxparser/
 │   ├── test_b64_gzip.tmx  # Base64 + gzip
 │   ├── test_b64_zlib.tmx  # Base64 + zlib
 │   ├── test_b64_zstd.tmx  # Base64 + zstd
+│   ├── test_animation.tmx # 动画测试地图
+│   ├── fire_animation.tsx # 外部瓦片集
+│   ├── fire_animation.png # 动画瓦片集图像
 │   └── test_tileset.png   # 测试瓦片集
 ├── .github/
 │   └── workflows/
@@ -60,6 +66,9 @@ namespace tmx::map {
     struct Map;          // 地图主结构
     struct Layer;        // 图层数据
     struct Tileset;      // 瓦片集
+    struct Tile;         // 瓦片（带动画或属性）
+    struct Animation;    // 瓦片动画
+    struct Frame;        // 动画帧
     struct Properties;   // 属性系统
     struct Color;        // 颜色处理
 }
@@ -92,6 +101,22 @@ namespace tmx::render {
         uint32_t destW, destH;  // 目标尺寸
         uint32_t tilesetIndex;  // 所属瓦片集索引
         float opacity;          // 不透明度
+        bool isAnimated;        // 是否有动画
+        uint32_t animationIndex; // 动画索引
+    };
+
+    // 动画帧信息
+    struct AnimationFrameInfo {
+        uint32_t tileId;    // 帧瓦片ID
+        uint32_t srcX, srcY; // 预计算的源位置
+        uint32_t duration;  // 帧持续时间（毫秒）
+    };
+
+    // 瓦片动画信息
+    struct TileAnimationInfo {
+        uint32_t baseTileId;                    // 基础瓦片ID
+        std::vector<AnimationFrameInfo> frames; // 动画帧
+        uint32_t totalDuration;                 // 总持续时间
     };
 
     // 图层渲染数据
@@ -172,15 +197,15 @@ auto parseLayer(const pugi::xml_node& node) -> tl::expected<map::Layer, std::str
 - ✅ 完整压缩支持（zlib、gzip、zstd）
 - ✅ 属性系统（键值对）
 - ✅ 颜色解析（十六进制格式）
+- ✅ 瓦片动画 (Tile Animations)
+- ✅ 外部瓦片集 (.tsx 文件)
 
 ### 待实现功能
 
 - ⭕ 对象层 (Object Layers)
 - ⭕ 图像层 (Image Layers)
 - ⭕ 组图层 (Group Layers)
-- ⭕ 瓦片动画 (Tile Animations)
 - ⭕ 地形类型 (Terrain Types)
-- ⭕ 外部瓦片集 (.tsx 文件)
 - ⭕ 无限地图 (Infinite Maps)
 - ⭕ 六边形和等距地图支持
 
@@ -190,31 +215,26 @@ TMXParser 是一个纯粹的解析库，不包含渲染功能。渲染应该在�
 
 ### SDL3 渲染示例
 
-项目已经在 `examples/SDL3` 目录下提供了完整的 SDL3 渲染示例实现。该示例展示了如何：
+项目在 `examples/SDL3` 目录下提供了完整的 SDL3 渲染示例实现，包含：
 
-1. **加载 TMX 地图数据**：
-   ```cpp
-   auto result = tmx::Parser::parseFromFile("test.tmx");
-   ```
+1. **Basic (基础渲染示例)**：
+   - 位于 `examples/SDL3/basic/`
+   - 展示静态地图的基础渲染
+   - 使用预计算渲染数据
+   - 支持多图层和透明度
 
-2. **创建 SDL3 窗口和渲染器**：
-    - 窗口大小根据地图尺寸自动计算
-    - 使用 SDL3 的硬件加速渲染器
+2. **Animated (动画渲染示例)**：
+   - 位于 `examples/SDL3/animated/`
+   - 展示外部 TSX 瓦片集解析
+   - 实现瓦片动画系统
+   - 基于时间的帧更新
+   - 多个动画同时运行
 
-3. **加载瓦片集纹理**：
-    - 使用 stb_image 加载 PNG 格式图像
-    - 支持透明度和 RGBA 格式
-    - 将图像数据转换为 SDL 纹理
-
-4. **渲染瓦片地图**：
-    - 遍历图层的瓦片数据
-    - 根据 firstgid 计算正确的瓦片 ID
-    - 使用源矩形和目标矩形进行精确渲染
-    - 支持多图层渲染
-
-5. **事件处理**：
-    - 支持 ESC 键退出
-    - 支持窗口关闭事件
+3. **Common (公共库)**：
+   - 位于 `examples/SDL3/common/`
+   - 提供 SDL3 工具函数
+   - 纹理加载和资源管理
+   - 所有示例共享的代码
 
 #### 运行 SDL3 示例
 
@@ -224,8 +244,11 @@ mkdir build && cd build
 cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_TMX_EXAMPLES=ON
 make -j$(nproc)
 
-# 运行 SDL3 示例
-./examples/SDL3/tmxparser_sdl3_example
+# 运行基础示例
+./examples/SDL3/basic/tmxparser_sdl3_basic
+
+# 运行动画示例
+./examples/SDL3/animated/tmxparser_sdl3_animated
 ```
 
 #### 渲染核心代码片段
