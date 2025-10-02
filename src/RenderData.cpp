@@ -64,6 +64,24 @@ namespace tmx::render
                         animInfo.frames.push_back(frameInfo);
                     }
 
+                    // Build flattened time-to-frame-index lookup table
+                    // This eliminates the need for loop-based frame search at runtime
+                    animInfo.timeToFrameIndex.resize(animInfo.totalDuration);
+                    std::uint32_t currentTime = 0;
+                    for (std::uint32_t frameIdx = 0; frameIdx < animInfo.frames.size(); ++frameIdx)
+                    {
+                        const auto& frame = animInfo.frames[frameIdx];
+                        // Fill the lookup table for this frame's duration
+                        for (std::uint32_t t = 0; t < frame.duration; ++t)
+                        {
+                            if (currentTime + t < animInfo.totalDuration)
+                            {
+                                animInfo.timeToFrameIndex[currentTime + t] = frameIdx;
+                            }
+                        }
+                        currentTime += frame.duration;
+                    }
+
                     tilesetInfo.animations.push_back(std::move(animInfo));
                 }
             }

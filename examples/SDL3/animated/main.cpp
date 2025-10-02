@@ -163,22 +163,12 @@ int main(int argc, char* argv[])
                     // Update animation
                     state.elapsedTime += deltaTime;
 
-                    // Find current frame based on elapsed time
+                    // Use flattened lookup to get current frame index - O(1) instead of O(n)
                     uint32_t timeInCycle = state.elapsedTime % animation.totalDuration;
-                    uint32_t accumulatedTime = 0;
-                    
-                    for (size_t i = 0; i < animation.frames.size(); ++i)
-                    {
-                        accumulatedTime += animation.frames[i].duration;
-                        if (timeInCycle < accumulatedTime)
-                        {
-                            state.currentFrame = static_cast<uint32_t>(i);
-                            break;
-                        }
-                    }
+                    uint32_t frameIndex = animation.getFrameIndexAtTime(timeInCycle);
 
                     // Use the current animation frame
-                    const auto& frame = animation.frames[state.currentFrame];
+                    const auto& frame = animation.frames[frameIndex];
                     srcRect = {
                         static_cast<float>(frame.srcX),
                         static_cast<float>(frame.srcY),

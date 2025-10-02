@@ -36,6 +36,17 @@ namespace tmx::render
         std::uint32_t baseTileId;    // The base tile ID that has this animation
         std::vector<AnimationFrameInfo> frames;
         std::uint32_t totalDuration; // Total animation duration in milliseconds
+        std::vector<std::uint32_t> timeToFrameIndex; // Flattened time-to-frame lookup (one entry per millisecond)
+        
+        /// @brief Get the frame index for a given time in the animation cycle
+        /// @param timeInCycle Time in milliseconds within the animation cycle (0 to totalDuration-1)
+        /// @return Frame index
+        [[nodiscard]] inline auto getFrameIndexAtTime(std::uint32_t timeInCycle) const -> std::uint32_t
+        {
+            if (timeToFrameIndex.empty() || timeInCycle >= timeToFrameIndex.size())
+                return 0;
+            return timeToFrameIndex[timeInCycle];
+        }
     };
 
     /// @brief Pre-calculated layer rendering information
