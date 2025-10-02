@@ -2,9 +2,11 @@
 
 ## 项目概述
 
-TMXParser 是一个现代化的 C++ TMX（Tiled Map Exchange）地图文件解析库，专门为游戏开发而设计。该项目采用最新的 C++23 标准，提供高性能、缓存友好的地图解析功能。
+TMXParser 是一个现代化的 C++ TMX（Tiled Map Exchange）地图文件解析库，专门为游戏开发而设计。该项目采用最新的 C++23
+标准，提供高性能、缓存友好的地图解析功能。
 
 ### 核心特性
+
 - **现代 C++23** - 利用最新语言特性提供类型安全和性能优化
 - **TMX 标准支持** - 完全遵循 [Tiled Map Editor 官方规范](https://doc.mapeditor.org/en/stable/reference/tmx-map-format/)
 - **纯解析库** - 专注于 TMX 格式解析，渲染由用户在应用层实现
@@ -17,6 +19,7 @@ TMXParser 是一个现代化的 C++ TMX（Tiled Map Exchange）地图文件解�
 ## 架构设计
 
 ### 目录结构
+
 ```
 tmxparser/
 ├── include/tmx/          # 公共头文件
@@ -50,6 +53,7 @@ tmxparser/
 ### 核心组件
 
 #### 1. TMX 数据结构 (`include/tmx/Map.hpp`)
+
 ```cpp
 // 所有TMX数据结构位于 tmx::map 命名空间中：
 namespace tmx::map {
@@ -62,6 +66,7 @@ namespace tmx::map {
 ```
 
 #### 2. 解析器 (`include/tmx/Parser.hpp`)
+
 ```cpp
 namespace tmx {
 class Parser {
@@ -75,6 +80,7 @@ public:
 ```
 
 #### 3. 渲染数据结构 (`include/tmx/RenderData.hpp`)
+
 ```cpp
 namespace tmx::render {
     // 预计算的瓦片渲染信息
@@ -120,28 +126,31 @@ namespace tmx::render {
 ## 开发准则
 
 ### 1. 编码标准
+
 - **C++23 标准**：使用最新语言特性（concepts, ranges, coroutines）
 - **内存管理**：优先使用智能指针，避免裸指针
 - **异常安全**：使用 `tl::expected` 进行错误处理
 - **const 正确性**：确保不可变数据的正确声明
 - **命名约定**：
-  - 类名：PascalCase (e.g., `TilesetManager`)
-  - 函数名：snake_case 或 camelCase (e.g., `parseFromFile`)
-  - 成员变量：m_ 前缀 (e.g., `m_tilesets`)
-  - 常量：UPPER_SNAKE_CASE (e.g., `MAX_LAYERS`)
+    - 类名：PascalCase (e.g., `TilesetManager`)
+    - 函数名：snake_case 或 camelCase (e.g., `parseFromFile`)
+    - 成员变量：m_ 前缀 (e.g., `m_tilesets`)
+    - 常量：UPPER_SNAKE_CASE (e.g., `MAX_LAYERS`)
 
 ### 2. 性能优化
+
 - **SIMD 指令**：在数据密集型操作中使用向量化
 - **缓存友好**：
-  - 数据结构按照访问模式排列
-  - 避免指针追逐，使用连续内存布局
-  - 预分配容器大小以减少重分配
+    - 数据结构按照访问模式排列
+    - 避免指针追逐，使用连续内存布局
+    - 预分配容器大小以减少重分配
 - **并发处理**：
-  - 使用 C++20 协程进行异步 I/O
-  - 多线程瓦片加载和解压缩
-  - 无锁数据结构用于高频访问场景
+    - 使用 C++20 协程进行异步 I/O
+    - 多线程瓦片加载和解压缩
+    - 无锁数据结构用于高频访问场景
 
 ### 3. 错误处理模式
+
 ```cpp
 // 使用 tl::expected 替代异常
 auto parseLayer(const pugi::xml_node& node) -> tl::expected<map::Layer, std::string> {
@@ -156,6 +165,7 @@ auto parseLayer(const pugi::xml_node& node) -> tl::expected<map::Layer, std::str
 ## TMX 格式支持
 
 ### 已实现功能
+
 - ✅ 基础地图属性（尺寸、瓦片大小、方向）
 - ✅ 瓦片集管理（firstgid、图像路径、瓦片尺寸）
 - ✅ 图层数据（CSV 和 Base64 编码）
@@ -164,6 +174,7 @@ auto parseLayer(const pugi::xml_node& node) -> tl::expected<map::Layer, std::str
 - ✅ 颜色解析（十六进制格式）
 
 ### 待实现功能
+
 - ⭕ 对象层 (Object Layers)
 - ⭕ 图像层 (Image Layers)
 - ⭕ 组图层 (Group Layers)
@@ -187,23 +198,23 @@ TMXParser 是一个纯粹的解析库，不包含渲染功能。渲染应该在�
    ```
 
 2. **创建 SDL3 窗口和渲染器**：
-   - 窗口大小根据地图尺寸自动计算
-   - 使用 SDL3 的硬件加速渲染器
+    - 窗口大小根据地图尺寸自动计算
+    - 使用 SDL3 的硬件加速渲染器
 
 3. **加载瓦片集纹理**：
-   - 使用 stb_image 加载 PNG 格式图像
-   - 支持透明度和 RGBA 格式
-   - 将图像数据转换为 SDL 纹理
+    - 使用 stb_image 加载 PNG 格式图像
+    - 支持透明度和 RGBA 格式
+    - 将图像数据转换为 SDL 纹理
 
 4. **渲染瓦片地图**：
-   - 遍历图层的瓦片数据
-   - 根据 firstgid 计算正确的瓦片 ID
-   - 使用源矩形和目标矩形进行精确渲染
-   - 支持多图层渲染
+    - 遍历图层的瓦片数据
+    - 根据 firstgid 计算正确的瓦片 ID
+    - 使用源矩形和目标矩形进行精确渲染
+    - 支持多图层渲染
 
 5. **事件处理**：
-   - 支持 ESC 键退出
-   - 支持窗口关闭事件
+    - 支持 ESC 键退出
+    - 支持窗口关闭事件
 
 #### 运行 SDL3 示例
 
@@ -269,6 +280,7 @@ for (const auto& layer : renderData.layers) {
 ```
 
 **性能优势：**
+
 - ✅ 无需每帧计算 `tileId = gid - firstgid`
 - ✅ 无需每帧计算 `tileX = (tileId % columns) * tilewidth`
 - ✅ 无需每帧计算 `tileY = (tileId / columns) * tileheight`
@@ -312,6 +324,7 @@ SDL3 示例需要以下依赖：
 ```
 
 ### 构建步骤
+
 ```bash
 mkdir build && cd build
 cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_TMX_EXAMPLES=ON
@@ -319,10 +332,12 @@ make -j$(nproc)
 ```
 
 **CMake 选项：**
+
 - `BUILD_TMX_EXAMPLES=ON`: 构建示例程序（basic 和 SDL3）
 - `BUILD_TMX_TESTS=ON`: 构建单元测试
 
 ### 平台支持
+
 - **Linux**: 主要开发平台，完全支持
 - **Windows**: 计划支持，需要 Visual Studio 2022
 - **macOS**: 计划支持，需要 Xcode 15+
@@ -359,6 +374,7 @@ ctest -R test_csv --verbose
 5. **test_base64_zstd** - Base64 + zstd 压缩测试
 
 每个测试验证：
+
 - 地图尺寸正确性
 - 瓦片集信息正确性
 - 图层数据完整性
@@ -367,6 +383,7 @@ ctest -R test_csv --verbose
 #### 持续集成
 
 项目使用 GitHub Actions 进行自动化测试：
+
 - 每次推送到 `master` 分支时自动运行
 - 每个 Pull Request 都会触发测试
 - 测试结果会显示在 PR 检查中
@@ -377,17 +394,19 @@ ctest -R test_csv --verbose
 
 ```cmake
 add_test(NAME test_name
-    COMMAND test_parser "${PROJECT_SOURCE_DIR}/assets/test_file.tmx"
-    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+        COMMAND test_parser "${PROJECT_SOURCE_DIR}/assets/test_file.tmx"
+        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
 ```
 
 ### 性能测试
+
 - 解析器性能基准测试（计划中）
 - 内存泄漏检测（计划中）
 - 边界条件验证（计划中）
 
 ### 集成测试
+
 - 与实际游戏引擎集成测试（计划中）
 - 大型地图性能测试（计划中）
 - 多线程安全性验证（计划中）
@@ -395,6 +414,7 @@ add_test(NAME test_name
 ## 示例用法
 
 ### 基础解析
+
 ```cpp
 #include <tmx/tmx.hpp>
 
@@ -520,6 +540,7 @@ int main() {
 > **提示**: 完整的实现请参考 `examples/SDL3/main.cpp`，包含了错误处理和更详细的注释。
 
 **关键优势：**
+
 - 使用 `tmx::render::createRenderData()` 创建渲染数据结构
 - 所有瓦片位置在渲染前一次性计算完毕
 - 渲染循环中无需任何数学计算，直接使用预计算值
@@ -529,6 +550,7 @@ int main() {
 ## 未来发展方向
 
 ### 短期目标 (1-2 个月)
+
 1. 完善基础 TMX 功能支持
 2. ✅ 提供完整的 SDL3 渲染示例
 3. ✅ 添加完整的单元测试套件（CTest + 5种编码/压缩格式测试）
@@ -536,12 +558,14 @@ int main() {
 5. 性能优化和基准测试
 
 ### 中期目标 (3-6 个月)
+
 1. 支持所有 TMX 特性
 2. 多线程和协程优化
 3. SIMD 指令优化
 4. 跨平台支持完善
 
 ### 长期目标 (6+ 个月)
+
 1. 游戏引擎集成插件
 2. 编辑器工具支持
 3. 云端地图流送
@@ -550,6 +574,7 @@ int main() {
 ## 贡献指南
 
 ### 代码审查清单
+
 - [ ] 遵循项目编码规范
 - [ ] 包含适当的单元测试
 - [ ] 性能无明显回退
@@ -557,6 +582,7 @@ int main() {
 - [ ] 文档更新完整
 
 ### 优先开发领域
+
 1. **高优先级**：基础 TMX 功能补全
 2. **中优先级**：性能优化和渲染增强
 3. **低优先级**：高级特性和工具集成
@@ -564,12 +590,14 @@ int main() {
 ## 技术债务管理
 
 ### 当前已知问题
+
 1. 错误处理需要更细粒度的错误类型
 2. 内存池分配器待实现
 3. 日志系统缺失
 4. 需要更多单元测试覆盖
 
 ### 重构计划
+
 1. 插件化架构设计
 2. 配置系统标准化
 3. 资源管理生命周期优化
@@ -597,13 +625,16 @@ int main() {
    ```
 
 3. **阅读源码**：
-   - 从 `include/tmx/tmx.hpp` 开始
-   - 查看 `examples/basic/main.cpp` 了解用法
-   - 深入 `src/Parser/Parser.cpp` 理解解析逻辑
+    - 从 `include/tmx/tmx.hpp` 开始
+    - 查看 `examples/basic/main.cpp` 了解用法
+    - 深入 `src/Parser/Parser.cpp` 理解解析逻辑
 
 4. **开始开发**：
-   - 在 `issues` 中寻找标记为 "good first issue" 的任务
-   - 遵循项目编码规范
-   - 提交 PR 前运行所有测试
+    - 在 `issues` 中寻找标记为 "good first issue" 的任务
+    - 遵循项目编码规范
+    - 提交 PR 前运行所有测试
+
+5. **更新指令**:
+    - 在 `.github/copilot-instructions.md`中同步更新最新的更改造成的影响。
 
 通过遵循这些指南，开发者可以高效地为 TMXParser 项目做出贡献，同时确保代码质量和项目的长期可维护性。
