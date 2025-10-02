@@ -7,7 +7,8 @@
 #include "../common/sdl3_utils.hpp"
 
 // Helper struct to track animation state for each tile
-struct AnimationState {
+struct AnimationState
+{
     uint32_t currentFrame = 0;
     uint32_t elapsedTime = 0;
 };
@@ -17,7 +18,7 @@ int main(int argc, char* argv[])
     std::cout << "TMX Parser SDL3 Animation Example" << std::endl;
 
     // Parse the TMX file with animations
-    std::filesystem::path assetDir = ASSET_DIR;
+    const std::filesystem::path assetDir = ASSET_DIR;
     auto result = tmx::Parser::parseFromFile(assetDir / "test_animation.tmx");
 
     if (!result)
@@ -34,7 +35,7 @@ int main(int argc, char* argv[])
 
     // Create render data (pre-calculate all tile positions and animations)
     std::cout << "Preparing render data..." << std::endl;
-    auto renderData = tmx::render::createRenderData(map, assetDir.string());
+    const auto renderData = tmx::render::createRenderData(map, assetDir.string());
 
     std::cout << "  Tilesets: " << renderData.tilesets.size() << std::endl;
     std::cout << "  Layers: " << renderData.layers.size() << std::endl;
@@ -46,7 +47,8 @@ int main(int argc, char* argv[])
         totalAnimations += tileset.animations.size();
         if (!tileset.animations.empty())
         {
-            std::cout << "  Tileset '" << tileset.name << "' has " << tileset.animations.size() << " animations" << std::endl;
+            std::cout << "  Tileset '" << tileset.name << "' has " << tileset.animations.size() << " animations" <<
+                std::endl;
         }
     }
     std::cout << "  Total animations: " << totalAnimations << std::endl;
@@ -75,7 +77,7 @@ int main(int argc, char* argv[])
     // Create window and renderer
     SDL_Window* window = nullptr;
     SDL_Renderer* renderer = nullptr;
-    
+
     if (!tmx::sdl3::createWindowAndRenderer(
         "TMXParser SDL3 Animation Example",
         static_cast<int>(renderData.pixelWidth),
@@ -93,7 +95,7 @@ int main(int argc, char* argv[])
     // Initialize animation states for each tile
     // Key: (tilesetIndex, animationIndex), Value: AnimationState
     std::unordered_map<uint64_t, AnimationState> animationStates;
-    
+
     std::cout << "Rendering animated map... Press ESC to quit." << std::endl;
 
     // Main loop
@@ -104,8 +106,8 @@ int main(int argc, char* argv[])
     while (running)
     {
         // Calculate delta time
-        uint32_t currentTime = SDL_GetTicks();
-        uint32_t deltaTime = currentTime - lastTime;
+        const uint32_t currentTime = SDL_GetTicks();
+        const uint32_t deltaTime = currentTime - lastTime;
         lastTime = currentTime;
 
         // Handle events
@@ -155,17 +157,17 @@ int main(int argc, char* argv[])
                         continue;
 
                     const auto& animation = tilesetInfo.animations[tile.animationIndex];
-                    
+
                     // Get or create animation state
                     uint64_t stateKey = (static_cast<uint64_t>(tile.tilesetIndex) << 32) | tile.animationIndex;
-                    auto& state = animationStates[stateKey];
+                    auto& [currentFrame, elapsedTime] = animationStates[stateKey];
 
                     // Update animation
-                    state.elapsedTime += deltaTime;
+                    elapsedTime += deltaTime;
 
                     // Use flattened lookup to get current frame index - O(1) instead of O(n)
-                    uint32_t timeInCycle = state.elapsedTime % animation.totalDuration;
-                    uint32_t frameIndex = animation.getFrameIndexAtTime(timeInCycle);
+                    const uint32_t timeInCycle = elapsedTime % animation.totalDuration;
+                    const uint32_t frameIndex = animation.getFrameIndexAtTime(timeInCycle);
 
                     // Use the current animation frame
                     const auto& frame = animation.frames[frameIndex];
