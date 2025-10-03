@@ -9,6 +9,14 @@ target_link_libraries(test_parser
     tmxparser
 )
 
+# Create test executable for infinite maps
+add_executable(test_infinite test_infinite.cpp)
+
+target_link_libraries(test_infinite
+    PRIVATE
+    tmxparser
+)
+
 # Add tests for each TMX file with different compression methods
 add_test(NAME test_csv
     COMMAND test_parser "${PROJECT_SOURCE_DIR}/assets/test.tmx"
@@ -35,6 +43,12 @@ add_test(NAME test_base64_zstd
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
 
+# Add test for infinite map
+add_test(NAME test_infinite
+    COMMAND test_infinite "${PROJECT_SOURCE_DIR}/assets/infinite/Interior1.tmx"
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+
 # Set test properties
 set_tests_properties(
     test_csv
@@ -42,6 +56,7 @@ set_tests_properties(
     test_base64_gzip
     test_base64_zlib
     test_base64_zstd
+    test_infinite
     PROPERTIES
     TIMEOUT 10
 )

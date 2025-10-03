@@ -37,10 +37,12 @@ tmxparser/
 │       ├── basic/      # 基础渲染示例
 │       ├── animated/   # 动画渲染示例
 │       ├── object/     # 对象渲染示例
+│       ├── infinite/   # 无限地图渲染示例
 │       └── common/     # 公共SDL3工具库
 ├── tests/              # 单元测试（基于 CTest）
 │   ├── CMakeLists.txt # 测试配置
-│   └── test_parser.cpp # 解析器测试
+│   ├── test_parser.cpp # 解析器测试
+│   └── test_infinite.cpp # 无限地图测试
 ├── assets/             # 测试资源文件
 │   ├── test.tmx       # CSV 编码
 │   ├── test_b64.tmx   # Base64 编码
@@ -53,6 +55,11 @@ tmxparser/
 │   ├── object/        # 对象测试资源
 │   │   ├── island.tmx # 对象测试地图
 │   │   └── beach_tileset.tsx # 外部瓦片集
+│   ├── infinite/      # 无限地图测试资源
+│   │   ├── Interior1.tmx # 无限地图测试
+│   │   ├── Interior.png # 内部瓦片集
+│   │   ├── walls_floor.png # 墙壁和地板瓦片集
+│   │   └── Doors_windows_animation.png # 门窗动画瓦片集
 │   └── test_tileset.png   # 测试瓦片集
 ├── .github/
 │   └── workflows/
@@ -75,6 +82,7 @@ namespace tmx::map {
     struct Frame;        // 动画帧
     struct ObjectGroup;  // 对象组
     struct Object;       // 对象（点、矩形、椭圆、多边形、折线）
+    struct Chunk;        // 分块（用于无限地图）
     struct Properties;   // 属性系统
     struct Color;        // 颜色处理
 }
@@ -206,13 +214,13 @@ auto parseLayer(const pugi::xml_node& node) -> tl::expected<map::Layer, std::str
 - ✅ 瓦片动画 (Tile Animations)
 - ✅ 外部瓦片集 (.tsx 文件)
 - ✅ 对象层 (Object Layers) - 支持点、矩形、椭圆、多边形、折线
+- ✅ 无限地图 (Infinite Maps) - 支持基于分块的地图数据
 
 ### 待实现功能
 
 - ⭕ 图像层 (Image Layers)
 - ⭕ 组图层 (Group Layers)
 - ⭕ 地形类型 (Terrain Types)
-- ⭕ 无限地图 (Infinite Maps)
 - ⭕ 六边形和等距地图支持
 
 ## 渲染集成

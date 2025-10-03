@@ -27,6 +27,7 @@ private:
     static auto parseRenderOrder(const std::string& str) -> map::RenderOrder;
     static auto parseData(const pugi::xml_node& dataNode, std::uint32_t width, std::uint32_t height) 
         -> tl::expected<std::vector<std::uint32_t>, std::string>;
+    static auto parseChunk(const pugi::xml_node& chunkNode) -> tl::expected<map::Chunk, std::string>;
 };
 
 }
