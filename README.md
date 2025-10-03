@@ -78,7 +78,7 @@ int main() {
 - ✅ Color parsing (hexadecimal format)
 - ✅ Tile animations
 - ✅ External tilesets (.tsx files)
-- ⭕ Object layers (planned)
+- ✅ Object layers (points, rectangles, ellipses, polygons, polylines)
 - ⭕ Image layers (planned)
 - ⭕ Group layers (planned)
 - ⭕ Infinite maps (planned)
@@ -122,9 +122,12 @@ Complete rendering implementations using SDL3:
 
 # Animated tiles
 ./examples/SDL3/animated/tmxparser_sdl3_animated
+
+# Object layer rendering
+./examples/SDL3/object/tmxparser_sdl3_object
 ```
 
-See [examples/](examples/) directory for full source code.
+See [examples/SDL3/](examples/SDL3/) directory for full source code and documentation.
 
 ## Testing
 
