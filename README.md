@@ -79,9 +79,9 @@ int main() {
 - ✅ Tile animations
 - ✅ External tilesets (.tsx files)
 - ✅ Object layers (points, rectangles, ellipses, polygons, polylines)
+- ✅ Infinite maps (chunk-based rendering)
 - ⭕ Image layers (planned)
 - ⭕ Group layers (planned)
-- ⭕ Infinite maps (planned)
 
 ## Architecture
 
@@ -125,6 +125,9 @@ Complete rendering implementations using SDL3:
 
 # Object layer rendering
 ./examples/SDL3/object/tmxparser_sdl3_object
+
+# Infinite map rendering (with camera panning)
+./examples/SDL3/infinite/tmxparser_sdl3_infinite
 ```
 
 See [examples/SDL3/](examples/SDL3/) directory for full source code and documentation.
