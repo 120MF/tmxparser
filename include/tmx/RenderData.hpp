@@ -58,6 +58,35 @@ namespace tmx::render
         std::vector<TileRenderInfo> tiles;  // Only non-empty tiles
     };
 
+    /// @brief Pre-calculated object rendering information
+    struct ObjectRenderInfo
+    {
+        std::uint32_t id;
+        std::string name;
+        std::string type;
+        float x, y;                    // Position in pixels
+        float width, height;           // Size in pixels
+        float rotation;                // Rotation in degrees
+        bool visible;
+        map::ObjectShape shape;
+        std::vector<map::Point> points; // For polygon/polyline
+        std::uint32_t gid;             // For tile objects
+        
+        // Pre-calculated tile rendering info for tile objects (gid != 0)
+        std::uint32_t tilesetIndex = static_cast<std::uint32_t>(-1);
+        std::uint32_t srcX = 0, srcY = 0;
+        std::uint32_t srcW = 0, srcH = 0;
+    };
+
+    /// @brief Pre-calculated object group rendering information
+    struct ObjectGroupRenderData
+    {
+        std::string name;
+        bool visible;
+        float opacity;
+        std::vector<ObjectRenderInfo> objects;
+    };
+
     /// @brief Tileset information for texture loading
     struct TilesetRenderInfo
     {
@@ -86,6 +115,7 @@ namespace tmx::render
 
         std::vector<TilesetRenderInfo> tilesets;
         std::vector<LayerRenderData> layers;
+        std::vector<ObjectGroupRenderData> objectGroups;
 
         /// @brief Create render data from a parsed TMX map
         /// @param map The parsed TMX map

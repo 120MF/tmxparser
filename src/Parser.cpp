@@ -110,6 +110,17 @@ namespace tmx
             map.layers.push_back(*layerResult);
         }
 
+        // Parse objectgroups
+        for (auto objectGroupNode : mapNode.children("objectgroup"))
+        {
+            auto objectGroupResult = parseObjectGroup(objectGroupNode);
+            if (!objectGroupResult)
+            {
+                return tl::make_unexpected(objectGroupResult.error());
+            }
+            map.objectgroups.push_back(*objectGroupResult);
+        }
+
         return map;
     }
 
@@ -201,6 +212,129 @@ namespace tmx
         }
 
         return layer;
+    }
+
+    auto Parser::parseObjectGroup(const pugi::xml_node& objectGroupNode) -> tl::expected<map::ObjectGroup, std::string>
+    {
+        map::ObjectGroup objectGroup;
+
+        objectGroup.name = objectGroupNode.attribute("name").as_string();
+        objectGroup.visible = objectGroupNode.attribute("visible").as_bool(true);
+        objectGroup.opacity = objectGroupNode.attribute("opacity").as_float(1.0f);
+
+        // Parse properties
+        if (const auto propertiesNode = objectGroupNode.child("properties"))
+        {
+            objectGroup.properties = parseProperties(propertiesNode);
+        }
+
+        // Parse objects
+        for (auto objectNode : objectGroupNode.children("object"))
+        {
+            auto objectResult = parseObject(objectNode);
+            if (!objectResult)
+            {
+                return tl::make_unexpected(objectResult.error());
+            }
+            objectGroup.objects.push_back(*objectResult);
+        }
+
+        return objectGroup;
+    }
+
+    auto Parser::parseObject(const pugi::xml_node& objectNode) -> tl::expected<map::Object, std::string>
+    {
+        map::Object object;
+
+        object.id = objectNode.attribute("id").as_uint();
+        object.name = objectNode.attribute("name").as_string();
+        object.type = objectNode.attribute("type").as_string();
+        object.x = objectNode.attribute("x").as_float();
+        object.y = objectNode.attribute("y").as_float();
+        object.width = objectNode.attribute("width").as_float(0.0f);
+        object.height = objectNode.attribute("height").as_float(0.0f);
+        object.rotation = objectNode.attribute("rotation").as_float(0.0f);
+        object.visible = objectNode.attribute("visible").as_bool(true);
+        object.gid = objectNode.attribute("gid").as_uint(0);
+
+        // Determine object shape
+        if (objectNode.child("point"))
+        {
+            object.shape = map::ObjectShape::Point;
+        }
+        else if (objectNode.child("ellipse"))
+        {
+            object.shape = map::ObjectShape::Ellipse;
+        }
+        else if (auto polygonNode = objectNode.child("polygon"))
+        {
+            object.shape = map::ObjectShape::Polygon;
+            // Parse polygon points
+            std::string pointsStr = polygonNode.attribute("points").as_string();
+            std::stringstream ss(pointsStr);
+            std::string pair;
+            while (std::getline(ss, pair, ' '))
+            {
+                size_t commaPos = pair.find(',');
+                if (commaPos != std::string::npos)
+                {
+                    try
+                    {
+                        map::Point point;
+                        point.x = std::stof(pair.substr(0, commaPos));
+                        point.y = std::stof(pair.substr(commaPos + 1));
+                        object.points.push_back(point);
+                    }
+                    catch (...)
+                    {
+                        return tl::make_unexpected("Failed to parse polygon points");
+                    }
+                }
+            }
+        }
+        else if (auto polylineNode = objectNode.child("polyline"))
+        {
+            object.shape = map::ObjectShape::Polyline;
+            // Parse polyline points
+            std::string pointsStr = polylineNode.attribute("points").as_string();
+            std::stringstream ss(pointsStr);
+            std::string pair;
+            while (std::getline(ss, pair, ' '))
+            {
+                size_t commaPos = pair.find(',');
+                if (commaPos != std::string::npos)
+                {
+                    try
+                    {
+                        map::Point point;
+                        point.x = std::stof(pair.substr(0, commaPos));
+                        point.y = std::stof(pair.substr(commaPos + 1));
+                        object.points.push_back(point);
+                    }
+                    catch (...)
+                    {
+                        return tl::make_unexpected("Failed to parse polyline points");
+                    }
+                }
+            }
+        }
+        else if (objectNode.child("text"))
+        {
+            object.shape = map::ObjectShape::Text;
+        }
+        else
+        {
+            // Default is rectangle
+            object.shape = map::ObjectShape::Rectangle;
+        }
+
+        // Parse properties
+        if (const auto propertiesNode = objectNode.child("properties"))
+        {
+            object.properties = parseProperties(propertiesNode);
+        }
+
+        return object;
     }
 
     auto Parser::parseProperties(const pugi::xml_node& propertiesNode) -> map::Properties

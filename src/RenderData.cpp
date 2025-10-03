@@ -184,6 +184,64 @@ namespace tmx::render
             renderData.layers.push_back(std::move(layerData));
         }
 
+        // Process object groups
+        renderData.objectGroups.reserve(map.objectgroups.size());
+        for (const auto& objectGroup : map.objectgroups)
+        {
+            ObjectGroupRenderData objectGroupData;
+            objectGroupData.name = objectGroup.name;
+            objectGroupData.visible = objectGroup.visible;
+            objectGroupData.opacity = objectGroup.opacity;
+
+            // Process objects
+            objectGroupData.objects.reserve(objectGroup.objects.size());
+            for (const auto& object : objectGroup.objects)
+            {
+                ObjectRenderInfo objectInfo;
+                objectInfo.id = object.id;
+                objectInfo.name = object.name;
+                objectInfo.type = object.type;
+                objectInfo.x = object.x;
+                objectInfo.y = object.y;
+                objectInfo.width = object.width;
+                objectInfo.height = object.height;
+                objectInfo.rotation = object.rotation;
+                objectInfo.visible = object.visible;
+                objectInfo.shape = object.shape;
+                objectInfo.points = object.points;
+                objectInfo.gid = object.gid;
+
+                // If this is a tile object (gid != 0), pre-calculate tile rendering info
+                if (object.gid != 0)
+                {
+                    // Find which tileset this GID belongs to
+                    for (std::uint32_t tilesetIdx = 0; tilesetIdx < renderData.tilesets.size(); ++tilesetIdx)
+                    {
+                        const auto& tilesetInfo = renderData.tilesets[tilesetIdx];
+                        if (object.gid >= tilesetInfo.firstgid && 
+                            (tilesetIdx + 1 >= renderData.tilesets.size() || 
+                             object.gid < renderData.tilesets[tilesetIdx + 1].firstgid))
+                        {
+                            objectInfo.tilesetIndex = tilesetIdx;
+                            
+                            // Calculate tile ID and source position
+                            const std::uint32_t tileId = object.gid - tilesetInfo.firstgid;
+                            objectInfo.srcX = (tileId % tilesetInfo.columns) * tilesetInfo.tileWidth;
+                            objectInfo.srcY = (tileId / tilesetInfo.columns) * tilesetInfo.tileHeight;
+                            objectInfo.srcW = tilesetInfo.tileWidth;
+                            objectInfo.srcH = tilesetInfo.tileHeight;
+                            break;
+                        }
+                    }
+                }
+
+                objectGroupData.objects.push_back(std::move(objectInfo));
+            }
+
+            objectGroupData.objects.shrink_to_fit();
+            renderData.objectGroups.push_back(std::move(objectGroupData));
+        }
+
         return renderData;
     }
 }
