@@ -3,15 +3,7 @@
 #include <iostream>
 #include <tmx/tmx.hpp>
 #include <filesystem>
-#include <unordered_map>
 #include "../common/sdl3_utils.hpp"
-
-// Helper struct to track animation state for each tile
-struct AnimationState
-{
-    uint32_t currentFrame = 0;
-    uint32_t elapsedTime = 0;
-};
 
 int main(int argc, char* argv[])
 {
@@ -92,9 +84,8 @@ int main(int argc, char* argv[])
     // Load tileset textures
     auto tilesetTextures = tmx::sdl3::loadTilesetTextures(renderer, renderData);
 
-    // Initialize animation states for each tile
-    // Key: (tilesetIndex, animationIndex), Value: AnimationState
-    std::unordered_map<uint64_t, AnimationState> animationStates;
+    // Initialize animation state manager
+    tmx::sdl3::AnimationStateManager animationStates;
 
     std::cout << "Rendering animated map... Press ESC to quit." << std::endl;
 
@@ -130,88 +121,8 @@ int main(int argc, char* argv[])
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
         SDL_RenderClear(renderer);
 
-        // Render tiles using pre-calculated render data
-        for (const auto& layer : renderData.layers)
-        {
-            if (!layer.visible)
-                continue;
-
-            for (const auto& tile : layer.tiles)
-            {
-                // Get the tileset texture
-                if (tile.tilesetIndex >= tilesetTextures.size())
-                    continue;
-
-                SDL_Texture* texture = tilesetTextures[tile.tilesetIndex];
-                if (!texture)
-                    continue;
-
-                SDL_FRect srcRect;
-                SDL_FRect destRect;
-
-                if (tile.isAnimated && tile.animationIndex != static_cast<uint32_t>(-1))
-                {
-                    // Get animation info
-                    const auto& tilesetInfo = renderData.tilesets[tile.tilesetIndex];
-                    if (tile.animationIndex >= tilesetInfo.animations.size())
-                        continue;
-
-                    const auto& animation = tilesetInfo.animations[tile.animationIndex];
-
-                    // Get or create animation state
-                    uint64_t stateKey = (static_cast<uint64_t>(tile.tilesetIndex) << 32) | tile.animationIndex;
-                    auto& [currentFrame, elapsedTime] = animationStates[stateKey];
-
-                    // Update animation
-                    elapsedTime += deltaTime;
-
-                    // Use flattened lookup to get current frame index - O(1) instead of O(n)
-                    const uint32_t timeInCycle = elapsedTime % animation.totalDuration;
-                    const uint32_t frameIndex = animation.getFrameIndexAtTime(timeInCycle);
-
-                    // Use the current animation frame
-                    const auto& frame = animation.frames[frameIndex];
-                    srcRect = {
-                        static_cast<float>(frame.srcX),
-                        static_cast<float>(frame.srcY),
-                        static_cast<float>(tile.srcW),
-                        static_cast<float>(tile.srcH)
-                    };
-                }
-                else
-                {
-                    // Static tile - use pre-calculated source rect
-                    srcRect = {
-                        static_cast<float>(tile.srcX),
-                        static_cast<float>(tile.srcY),
-                        static_cast<float>(tile.srcW),
-                        static_cast<float>(tile.srcH)
-                    };
-                }
-
-                // Destination is always the same
-                destRect = {
-                    static_cast<float>(tile.destX),
-                    static_cast<float>(tile.destY),
-                    static_cast<float>(tile.destW),
-                    static_cast<float>(tile.destH)
-                };
-
-                // Apply opacity if not fully opaque
-                if (tile.opacity < 1.0f)
-                {
-                    SDL_SetTextureAlphaModFloat(texture, tile.opacity);
-                }
-
-                SDL_RenderTexture(renderer, texture, &srcRect, &destRect);
-
-                // Reset opacity
-                if (tile.opacity < 1.0f)
-                {
-                    SDL_SetTextureAlphaModFloat(texture, 1.0f);
-                }
-            }
-        }
+        // Render map using common rendering function
+        tmx::sdl3::renderMap(renderer, renderData, tilesetTextures, animationStates, deltaTime);
 
         // Present
         SDL_RenderPresent(renderer);
