@@ -98,84 +98,177 @@ namespace tmx::render
             layerData.visible = layer.visible;
             layerData.opacity = layer.opacity;
 
-            // Pre-calculate all tile rendering information
-            // Reserve space for worst case (all tiles non-empty)
-            layerData.tiles.reserve(layer.data.size());
-
-            for (std::uint32_t y = 0; y < layer.height; ++y)
+            // Check if this is an infinite map with chunks
+            if (!layer.chunks.empty())
             {
-                for (std::uint32_t x = 0; x < layer.width; ++x)
+                // Process chunks for infinite maps
+                for (const auto& chunk : layer.chunks)
                 {
-                    const std::uint32_t index = y * layer.width + x;
-                    if (index >= layer.data.size())
-                        continue;
-
-                    const std::uint32_t gid = layer.data[index];
-                    if (gid == 0)
-                        continue; // Skip empty tiles
-
-                    // Find which tileset this tile belongs to
-                    std::uint32_t tilesetIndex = 0;
-                    const map::Tileset* tileset = nullptr;
-
-                    for (std::uint32_t i = 0; i < map.tilesets.size(); ++i)
+                    for (std::uint32_t cy = 0; cy < chunk.height; ++cy)
                     {
-                        if (gid >= map.tilesets[i].firstgid)
+                        for (std::uint32_t cx = 0; cx < chunk.width; ++cx)
                         {
-                            // Check if this is the right tileset
-                            if (i + 1 >= map.tilesets.size() || gid < map.tilesets[i + 1].firstgid)
+                            const std::uint32_t index = cy * chunk.width + cx;
+                            if (index >= chunk.data.size())
+                                continue;
+
+                            const std::uint32_t gid = chunk.data[index];
+                            if (gid == 0)
+                                continue; // Skip empty tiles
+
+                            // Calculate absolute tile position
+                            // chunk.x and chunk.y are in tile coordinates
+                            const std::int32_t x = chunk.x + static_cast<std::int32_t>(cx);
+                            const std::int32_t y = chunk.y + static_cast<std::int32_t>(cy);
+
+                            // Find which tileset this tile belongs to
+                            std::uint32_t tilesetIndex = 0;
+                            const map::Tileset* tileset = nullptr;
+
+                            for (std::uint32_t i = 0; i < map.tilesets.size(); ++i)
                             {
-                                tilesetIndex = i;
-                                tileset = &map.tilesets[i];
+                                if (gid >= map.tilesets[i].firstgid)
+                                {
+                                    // Check if this is the right tileset
+                                    if (i + 1 >= map.tilesets.size() || gid < map.tilesets[i + 1].firstgid)
+                                    {
+                                        tilesetIndex = i;
+                                        tileset = &map.tilesets[i];
+                                        break;
+                                    }
+                                }
+                            }
+
+                            if (!tileset)
+                                continue; // Invalid tile
+
+                            // Calculate tile ID (subtract firstgid)
+                            const std::uint32_t tileId = gid - tileset->firstgid;
+
+                            // Pre-calculate source position in tileset
+                            const std::uint32_t tileX = (tileId % tileset->columns) * tileset->tilewidth;
+                            const std::uint32_t tileY = (tileId / tileset->columns) * tileset->tileheight;
+
+                            // Pre-calculate destination position on screen
+                            const std::uint32_t destX = x * map.tilewidth;
+                            const std::uint32_t destY = y * map.tileheight;
+
+                            // Create tile render info
+                            TileRenderInfo tileInfo{};
+                            tileInfo.tileId = tileId;
+                            tileInfo.srcX = tileX;
+                            tileInfo.srcY = tileY;
+                            tileInfo.srcW = tileset->tilewidth;
+                            tileInfo.srcH = tileset->tileheight;
+                            tileInfo.destX = destX;
+                            tileInfo.destY = destY;
+                            tileInfo.destW = map.tilewidth;
+                            tileInfo.destH = map.tileheight;
+                            tileInfo.tilesetIndex = tilesetIndex;
+                            tileInfo.opacity = layer.opacity;
+                            
+                            // Check if this tile has an animation
+                            tileInfo.isAnimated = false;
+                            tileInfo.animationIndex = static_cast<std::uint32_t>(-1);
+                            
+                            const auto& tilesetRenderInfo = renderData.tilesets[tilesetIndex];
+                            for (std::uint32_t animIdx = 0; animIdx < tilesetRenderInfo.animations.size(); ++animIdx)
+                            {
+                                if (tilesetRenderInfo.animations[animIdx].baseTileId == tileId)
+                                {
+                                    tileInfo.isAnimated = true;
+                                    tileInfo.animationIndex = animIdx;
+                                    break;
+                                }
+                            }
+
+                            layerData.tiles.push_back(std::move(tileInfo));
+                        }
+                    }
+                }
+            }
+            else
+            {
+                // Process regular tile data for finite maps
+                // Pre-calculate all tile rendering information
+                // Reserve space for worst case (all tiles non-empty)
+                layerData.tiles.reserve(layer.data.size());
+
+                for (std::uint32_t y = 0; y < layer.height; ++y)
+                {
+                    for (std::uint32_t x = 0; x < layer.width; ++x)
+                    {
+                        const std::uint32_t index = y * layer.width + x;
+                        if (index >= layer.data.size())
+                            continue;
+
+                        const std::uint32_t gid = layer.data[index];
+                        if (gid == 0)
+                            continue; // Skip empty tiles
+
+                        // Find which tileset this tile belongs to
+                        std::uint32_t tilesetIndex = 0;
+                        const map::Tileset* tileset = nullptr;
+
+                        for (std::uint32_t i = 0; i < map.tilesets.size(); ++i)
+                        {
+                            if (gid >= map.tilesets[i].firstgid)
+                            {
+                                // Check if this is the right tileset
+                                if (i + 1 >= map.tilesets.size() || gid < map.tilesets[i + 1].firstgid)
+                                {
+                                    tilesetIndex = i;
+                                    tileset = &map.tilesets[i];
+                                    break;
+                                }
+                            }
+                        }
+
+                        if (!tileset)
+                            continue; // Invalid tile
+
+                        // Calculate tile ID (subtract firstgid)
+                        const std::uint32_t tileId = gid - tileset->firstgid;
+
+                        // Pre-calculate source position in tileset
+                        const std::uint32_t tileX = (tileId % tileset->columns) * tileset->tilewidth;
+                        const std::uint32_t tileY = (tileId / tileset->columns) * tileset->tileheight;
+
+                        // Pre-calculate destination position on screen
+                        const std::uint32_t destX = x * map.tilewidth;
+                        const std::uint32_t destY = y * map.tileheight;
+
+                        // Create tile render info
+                        TileRenderInfo tileInfo{};
+                        tileInfo.tileId = tileId;
+                        tileInfo.srcX = tileX;
+                        tileInfo.srcY = tileY;
+                        tileInfo.srcW = tileset->tilewidth;
+                        tileInfo.srcH = tileset->tileheight;
+                        tileInfo.destX = destX;
+                        tileInfo.destY = destY;
+                        tileInfo.destW = map.tilewidth;
+                        tileInfo.destH = map.tileheight;
+                        tileInfo.tilesetIndex = tilesetIndex;
+                        tileInfo.opacity = layer.opacity;
+                        
+                        // Check if this tile has an animation
+                        tileInfo.isAnimated = false;
+                        tileInfo.animationIndex = static_cast<std::uint32_t>(-1);
+                        
+                        const auto& tilesetRenderInfo = renderData.tilesets[tilesetIndex];
+                        for (std::uint32_t animIdx = 0; animIdx < tilesetRenderInfo.animations.size(); ++animIdx)
+                        {
+                            if (tilesetRenderInfo.animations[animIdx].baseTileId == tileId)
+                            {
+                                tileInfo.isAnimated = true;
+                                tileInfo.animationIndex = animIdx;
                                 break;
                             }
                         }
+
+                        layerData.tiles.push_back(std::move(tileInfo));
                     }
-
-                    if (!tileset)
-                        continue; // Invalid tile
-
-                    // Calculate tile ID (subtract firstgid)
-                    const std::uint32_t tileId = gid - tileset->firstgid;
-
-                    // Pre-calculate source position in tileset
-                    const std::uint32_t tileX = (tileId % tileset->columns) * tileset->tilewidth;
-                    const std::uint32_t tileY = (tileId / tileset->columns) * tileset->tileheight;
-
-                    // Pre-calculate destination position on screen
-                    const std::uint32_t destX = x * map.tilewidth;
-                    const std::uint32_t destY = y * map.tileheight;
-
-                    // Create tile render info
-                    TileRenderInfo tileInfo{};
-                    tileInfo.tileId = tileId;
-                    tileInfo.srcX = tileX;
-                    tileInfo.srcY = tileY;
-                    tileInfo.srcW = tileset->tilewidth;
-                    tileInfo.srcH = tileset->tileheight;
-                    tileInfo.destX = destX;
-                    tileInfo.destY = destY;
-                    tileInfo.destW = map.tilewidth;
-                    tileInfo.destH = map.tileheight;
-                    tileInfo.tilesetIndex = tilesetIndex;
-                    tileInfo.opacity = layer.opacity;
-                    
-                    // Check if this tile has an animation
-                    tileInfo.isAnimated = false;
-                    tileInfo.animationIndex = static_cast<std::uint32_t>(-1);
-                    
-                    const auto& tilesetRenderInfo = renderData.tilesets[tilesetIndex];
-                    for (std::uint32_t animIdx = 0; animIdx < tilesetRenderInfo.animations.size(); ++animIdx)
-                    {
-                        if (tilesetRenderInfo.animations[animIdx].baseTileId == tileId)
-                        {
-                            tileInfo.isAnimated = true;
-                            tileInfo.animationIndex = animIdx;
-                            break;
-                        }
-                    }
-
-                    layerData.tiles.push_back(std::move(tileInfo));
                 }
             }
 

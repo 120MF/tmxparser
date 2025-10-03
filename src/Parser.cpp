@@ -203,12 +203,30 @@ namespace tmx
         // Parse data
         if (const auto dataNode = layerNode.child("data"))
         {
-            auto dataResult = parseData(dataNode, layer.width, layer.height);
-            if (!dataResult)
+            // Check if this is an infinite map with chunks
+            if (dataNode.child("chunk"))
             {
-                return tl::make_unexpected(dataResult.error());
+                // Parse chunks for infinite maps
+                for (const auto chunkNode : dataNode.children("chunk"))
+                {
+                    auto chunkResult = parseChunk(chunkNode);
+                    if (!chunkResult)
+                    {
+                        return tl::make_unexpected(chunkResult.error());
+                    }
+                    layer.chunks.push_back(*chunkResult);
+                }
             }
-            layer.data = *dataResult;
+            else
+            {
+                // Parse regular tile data for finite maps
+                auto dataResult = parseData(dataNode, layer.width, layer.height);
+                if (!dataResult)
+                {
+                    return tl::make_unexpected(dataResult.error());
+                }
+                layer.data = *dataResult;
+            }
         }
 
         return layer;
@@ -513,6 +531,36 @@ namespace tmx
         }
 
         return data;
+    }
+
+    auto Parser::parseChunk(const pugi::xml_node& chunkNode) -> tl::expected<map::Chunk, std::string>
+    {
+        map::Chunk chunk;
+
+        // Parse chunk attributes
+        chunk.x = chunkNode.attribute("x").as_int();
+        chunk.y = chunkNode.attribute("y").as_int();
+        chunk.width = chunkNode.attribute("width").as_uint();
+        chunk.height = chunkNode.attribute("height").as_uint();
+
+        // Parse CSV data from chunk text content
+        std::string csvData = chunkNode.text().as_string();
+        std::stringstream ss(csvData);
+        std::string cell;
+
+        while (std::getline(ss, cell, ','))
+        {
+            try
+            {
+                chunk.data.push_back(static_cast<std::uint32_t>(std::stoul(cell)));
+            }
+            catch (...)
+            {
+                return tl::make_unexpected("Failed to parse chunk CSV data");
+            }
+        }
+
+        return chunk;
     }
 
     auto Parser::parseTilesetFile(const std::filesystem::path& path, std::uint32_t firstgid) -> tl::expected<map::Tileset, std::string>
