@@ -20,6 +20,8 @@ private:
     static auto parseTile(const pugi::xml_node& tileNode) -> tl::expected<map::Tile, std::string>;
     static auto parseAnimation(const pugi::xml_node& animationNode) -> tl::expected<map::Animation, std::string>;
     static auto parseLayer(const pugi::xml_node& layerNode) -> tl::expected<map::Layer, std::string>;
+    static auto parseObjectGroup(const pugi::xml_node& objectGroupNode) -> tl::expected<map::ObjectGroup, std::string>;
+    static auto parseObject(const pugi::xml_node& objectNode) -> tl::expected<map::Object, std::string>;
     static auto parseProperties(const pugi::xml_node& propertiesNode) -> map::Properties;
     static auto parseOrientation(const std::string& str) -> map::Orientation;
     static auto parseRenderOrder(const std::string& str) -> map::RenderOrder;

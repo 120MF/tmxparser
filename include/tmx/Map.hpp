@@ -107,13 +107,43 @@ namespace tmx::map
         Properties properties;
     };
 
+    enum class ObjectShape
+    {
+        Rectangle,  // Default shape (has width and height)
+        Ellipse,    // Ellipse shape (has width and height)
+        Point,      // Point shape (no width/height)
+        Polygon,    // Polygon shape (has points)
+        Polyline,   // Polyline shape (has points)
+        Text        // Text object
+    };
+
+    struct Point
+    {
+        float x, y;
+    };
+
+    struct Object
+    {
+        std::uint32_t id;
+        std::string name;
+        std::string type;
+        float x, y;           // Position in pixels
+        float width, height;  // Size in pixels (for rectangle/ellipse)
+        float rotation = 0.0f; // Rotation in degrees
+        bool visible = true;
+        ObjectShape shape = ObjectShape::Rectangle;
+        std::vector<Point> points; // For polygon and polyline
+        std::uint32_t gid = 0;     // Global tile ID for tile objects
+        Properties properties;
+    };
+
     struct ObjectGroup
     {
         std::string name;
         bool visible = true;
         float opacity = 1.0f;
         Properties properties;
-        // TODO: Add objects
+        std::vector<Object> objects;
     };
 
     struct Map
