@@ -51,7 +51,7 @@ int main(int argc, char* argv[])
     // Calculate the bounding box of all tiles for window size
     int minX = 0, minY = 0, maxX = 0, maxY = 0;
     bool first = true;
-    
+
     for (const auto& layer : renderData.layers)
     {
         for (const auto& tile : layer.tiles)
@@ -60,7 +60,7 @@ int main(int argc, char* argv[])
             int tileY = static_cast<int>(tile.destY);
             int tileRight = tileX + static_cast<int>(tile.destW);
             int tileBottom = tileY + static_cast<int>(tile.destH);
-            
+
             if (first)
             {
                 minX = tileX;
@@ -95,13 +95,13 @@ int main(int argc, char* argv[])
     }
 
     // Create window and renderer - scale down if map is too large
-    const int maxWindowWidth = 1280;
-    const int maxWindowHeight = 720;
-    
+    constexpr int maxWindowWidth = 1280;
+    constexpr int maxWindowHeight = 720;
+
     float scale = 1.0f;
     int windowWidth = mapPixelWidth;
     int windowHeight = mapPixelHeight;
-    
+
     if (windowWidth > maxWindowWidth || windowHeight > maxWindowHeight)
     {
         float scaleX = static_cast<float>(maxWindowWidth) / windowWidth;
@@ -114,7 +114,7 @@ int main(int argc, char* argv[])
 
     SDL_Window* window = nullptr;
     SDL_Renderer* renderer = nullptr;
-    
+
     if (!tmx::sdl3::createWindowAndRenderer(
         "TMXParser SDL3 Infinite Map Example - Interior1.tmx",
         windowWidth,
@@ -238,13 +238,13 @@ int main(int argc, char* argv[])
                     {
                         const auto& animation = tilesetInfo.animations[tile.animationIndex];
                         auto& animState = animationStates.getState(tile.tilesetIndex, tile.animationIndex);
-                        
+
                         // Get current frame using helper method
                         if (animation.totalDuration > 0)
                         {
                             uint32_t timeInCycle = animState.elapsedTime % animation.totalDuration;
                             uint32_t currentFrameIndex = animation.getFrameIndexAtTime(timeInCycle);
-                            
+
                             if (currentFrameIndex < animation.frames.size())
                             {
                                 const auto& frame = animation.frames[currentFrameIndex];

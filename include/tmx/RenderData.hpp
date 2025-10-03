@@ -11,33 +11,33 @@ namespace tmx::render
     /// This structure eliminates the need for runtime calculations during rendering
     struct TileRenderInfo
     {
-        std::uint32_t tileId;        // Tile ID after subtracting firstgid
-        std::uint32_t srcX, srcY;    // Source position in tileset (pixels)
-        std::uint32_t srcW, srcH;    // Source dimensions in tileset (pixels)
-        std::uint32_t destX, destY;  // Destination position on screen (pixels)
-        std::uint32_t destW, destH;  // Destination dimensions on screen (pixels)
-        std::uint32_t tilesetIndex;  // Which tileset this tile belongs to
-        float opacity;               // Layer opacity (0.0 - 1.0)
-        bool isAnimated;             // Whether this tile has animation
+        std::uint32_t tileId; // Tile ID after subtracting firstgid
+        std::uint32_t srcX, srcY; // Source position in tileset (pixels)
+        std::uint32_t srcW, srcH; // Source dimensions in tileset (pixels)
+        std::int32_t destX, destY; // Destination position on screen (pixels) - can be negative for infinite maps
+        std::uint32_t destW, destH; // Destination dimensions on screen (pixels)
+        std::uint32_t tilesetIndex; // Which tileset this tile belongs to
+        float opacity; // Layer opacity (0.0 - 1.0)
+        bool isAnimated; // Whether this tile has animation
         std::uint32_t animationIndex; // Index into TilesetRenderInfo::animations (-1 if not animated)
     };
 
     /// @brief Pre-calculated animation frame information
     struct AnimationFrameInfo
     {
-        std::uint32_t tileId;        // Tile ID for this frame (after subtracting firstgid)
-        std::uint32_t srcX, srcY;    // Source position in tileset (pixels)
-        std::uint32_t duration;      // Duration in milliseconds
+        std::uint32_t tileId; // Tile ID for this frame (after subtracting firstgid)
+        std::uint32_t srcX, srcY; // Source position in tileset (pixels)
+        std::uint32_t duration; // Duration in milliseconds
     };
 
     /// @brief Animation data for a specific tile
     struct TileAnimationInfo
     {
-        std::uint32_t baseTileId;    // The base tile ID that has this animation
+        std::uint32_t baseTileId; // The base tile ID that has this animation
         std::vector<AnimationFrameInfo> frames;
         std::uint32_t totalDuration; // Total animation duration in milliseconds
         std::vector<std::uint32_t> timeToFrameIndex; // Flattened time-to-frame lookup (one entry per millisecond)
-        
+
         /// @brief Get the frame index for a given time in the animation cycle
         /// @param timeInCycle Time in milliseconds within the animation cycle (0 to totalDuration-1)
         /// @return Frame index
@@ -55,7 +55,7 @@ namespace tmx::render
         std::string name;
         bool visible;
         float opacity;
-        std::vector<TileRenderInfo> tiles;  // Only non-empty tiles
+        std::vector<TileRenderInfo> tiles; // Only non-empty tiles
     };
 
     /// @brief Pre-calculated object rendering information
@@ -64,14 +64,14 @@ namespace tmx::render
         std::uint32_t id;
         std::string name;
         std::string type;
-        float x, y;                    // Position in pixels
-        float width, height;           // Size in pixels
-        float rotation;                // Rotation in degrees
+        float x, y; // Position in pixels
+        float width, height; // Size in pixels
+        float rotation; // Rotation in degrees
         bool visible;
         map::ObjectShape shape;
         std::vector<map::Point> points; // For polygon/polyline
-        std::uint32_t gid;             // For tile objects
-        
+        std::uint32_t gid; // For tile objects
+
         // Pre-calculated tile rendering info for tile objects (gid != 0)
         std::uint32_t tilesetIndex = static_cast<std::uint32_t>(-1);
         std::uint32_t srcX = 0, srcY = 0;
@@ -106,12 +106,12 @@ namespace tmx::render
     /// All tile coordinates and positions are pre-calculated for maximum performance
     struct MapRenderData
     {
-        std::uint32_t mapWidth;      // Map width in tiles
-        std::uint32_t mapHeight;     // Map height in tiles
-        std::uint32_t tileWidth;     // Tile width in pixels
-        std::uint32_t tileHeight;    // Tile height in pixels
-        std::uint32_t pixelWidth;    // Total map width in pixels
-        std::uint32_t pixelHeight;   // Total map height in pixels
+        std::uint32_t mapWidth; // Map width in tiles
+        std::uint32_t mapHeight; // Map height in tiles
+        std::uint32_t tileWidth; // Tile width in pixels
+        std::uint32_t tileHeight; // Tile height in pixels
+        std::uint32_t pixelWidth; // Total map width in pixels
+        std::uint32_t pixelHeight; // Total map height in pixels
 
         std::vector<TilesetRenderInfo> tilesets;
         std::vector<LayerRenderData> layers;

@@ -15,7 +15,7 @@ namespace tmx::render
         renderData.pixelWidth = map.width * map.tilewidth;
         renderData.pixelHeight = map.height * map.tileheight;
 
-        // Process tilesets
+        // Process tileset
         renderData.tilesets.reserve(map.tilesets.size());
         for (const auto& tileset : map.tilesets)
         {
@@ -55,11 +55,11 @@ namespace tmx::render
                         AnimationFrameInfo frameInfo;
                         frameInfo.tileId = frame.tileid;
                         frameInfo.duration = frame.duration;
-                        
+
                         // Pre-calculate source position for this frame
                         frameInfo.srcX = (frame.tileid % tileset.columns) * tileset.tilewidth;
                         frameInfo.srcY = (frame.tileid / tileset.columns) * tileset.tileheight;
-                        
+
                         animInfo.totalDuration += frame.duration;
                         animInfo.frames.push_back(frameInfo);
                     }
@@ -150,8 +150,8 @@ namespace tmx::render
                             const std::uint32_t tileY = (tileId / tileset->columns) * tileset->tileheight;
 
                             // Pre-calculate destination position on screen
-                            const std::uint32_t destX = x * map.tilewidth;
-                            const std::uint32_t destY = y * map.tileheight;
+                            const std::int32_t destX = x * static_cast<std::int32_t>(map.tilewidth);
+                            const std::int32_t destY = y * static_cast<std::int32_t>(map.tileheight);
 
                             // Create tile render info
                             TileRenderInfo tileInfo{};
@@ -166,11 +166,11 @@ namespace tmx::render
                             tileInfo.destH = map.tileheight;
                             tileInfo.tilesetIndex = tilesetIndex;
                             tileInfo.opacity = layer.opacity;
-                            
+
                             // Check if this tile has an animation
                             tileInfo.isAnimated = false;
                             tileInfo.animationIndex = static_cast<std::uint32_t>(-1);
-                            
+
                             const auto& tilesetRenderInfo = renderData.tilesets[tilesetIndex];
                             for (std::uint32_t animIdx = 0; animIdx < tilesetRenderInfo.animations.size(); ++animIdx)
                             {
@@ -251,11 +251,11 @@ namespace tmx::render
                         tileInfo.destH = map.tileheight;
                         tileInfo.tilesetIndex = tilesetIndex;
                         tileInfo.opacity = layer.opacity;
-                        
+
                         // Check if this tile has an animation
                         tileInfo.isAnimated = false;
                         tileInfo.animationIndex = static_cast<std::uint32_t>(-1);
-                        
+
                         const auto& tilesetRenderInfo = renderData.tilesets[tilesetIndex];
                         for (std::uint32_t animIdx = 0; animIdx < tilesetRenderInfo.animations.size(); ++animIdx)
                         {
@@ -311,12 +311,12 @@ namespace tmx::render
                     for (std::uint32_t tilesetIdx = 0; tilesetIdx < renderData.tilesets.size(); ++tilesetIdx)
                     {
                         const auto& tilesetInfo = renderData.tilesets[tilesetIdx];
-                        if (object.gid >= tilesetInfo.firstgid && 
-                            (tilesetIdx + 1 >= renderData.tilesets.size() || 
-                             object.gid < renderData.tilesets[tilesetIdx + 1].firstgid))
+                        if (object.gid >= tilesetInfo.firstgid &&
+                            (tilesetIdx + 1 >= renderData.tilesets.size() ||
+                                object.gid < renderData.tilesets[tilesetIdx + 1].firstgid))
                         {
                             objectInfo.tilesetIndex = tilesetIdx;
-                            
+
                             // Calculate tile ID and source position
                             const std::uint32_t tileId = object.gid - tilesetInfo.firstgid;
                             objectInfo.srcX = (tileId % tilesetInfo.columns) * tilesetInfo.tileWidth;
